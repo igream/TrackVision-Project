@@ -70,7 +70,7 @@ function resetResults() {
   stageTitle.textContent = "Vista previa";
   stageCounter.textContent = "0 / 0";
   summaryText.classList.remove("is-error", "is-success");
-  setStatus("Web local");
+  setStatus("Laboratorio academico");
   updateModeLabels();
 }
 

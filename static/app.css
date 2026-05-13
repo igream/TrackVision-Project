@@ -2,6 +2,9 @@
   --royal: #003d91;
   --royal-deep: #002f6c;
   --royal-soft: #e8f1ff;
+  --uaemex-gold: #c8a100;
+  --uaemex-green: #224b2f;
+  --uaemex-cream: #fbf6e8;
   --ink: #172033;
   --muted: #68748a;
   --line: #d9e3f2;
@@ -93,6 +96,57 @@ h2 {
   gap: 18px;
   width: min(1180px, calc(100% - 32px));
   margin: 22px auto;
+}
+
+.institution-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  grid-column: 1 / -1;
+  padding: 16px 18px;
+  border: 1px solid rgba(200, 161, 0, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(200, 161, 0, 0.08), rgba(34, 75, 47, 0.04)),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.institution-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.institution-logo {
+  width: 68px;
+  height: 68px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--uaemex-cream);
+  border: 1px solid rgba(34, 75, 47, 0.16);
+  object-fit: contain;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 3px 8px rgba(34, 75, 47, 0.12));
+}
+
+.institution-band .eyebrow {
+  color: var(--uaemex-green);
+  opacity: 1;
+}
+
+.institution-band h2 {
+  color: var(--royal-deep);
+}
+
+.institution-note {
+  margin: 0;
+  max-width: 340px;
+  color: var(--muted);
+  font-size: 0.94rem;
+  text-align: right;
 }
 
 .upload-panel,
@@ -373,6 +427,16 @@ pre {
     grid-template-columns: 1fr;
     width: min(100% - 24px, 680px);
     margin-top: 14px;
+  }
+
+  .institution-band {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .institution-note {
+    max-width: none;
+    text-align: left;
   }
 
   .upload-panel,

@@ -27,6 +27,14 @@ LOGO_PATHS = (
     BASE_DIR / "src" / "LogoInApp.png",
     BASE_DIR / "src" / "LogoInApp.PNG",
 )
+FAVICON_PATHS = (
+    BASE_DIR / "src" / "LogoOutApp.png",
+    BASE_DIR / "src" / "LogoOutApp.PNG",
+)
+UAEMEX_PATHS = (
+    BASE_DIR / "src" / "LogoUAEMex.png",
+    BASE_DIR / "src" / "LogoUAEMex.PNG",
+)
 SUPPORTED_UPLOAD_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
 
 
@@ -59,6 +67,22 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
                 self.send_error(HTTPStatus.NOT_FOUND, "Logo no encontrado")
                 return
             self._send_file(logo_path, "image/png")
+            return
+
+        if path == "/assets/favicon":
+            favicon_path = next((candidate for candidate in FAVICON_PATHS if candidate.exists()), None)
+            if favicon_path is None:
+                self.send_error(HTTPStatus.NOT_FOUND, "Icono no encontrado")
+                return
+            self._send_file(favicon_path, "image/png")
+            return
+
+        if path == "/assets/uaemex":
+            uaemex_path = next((candidate for candidate in UAEMEX_PATHS if candidate.exists()), None)
+            if uaemex_path is None:
+                self.send_error(HTTPStatus.NOT_FOUND, "Logo UAEMex no encontrado")
+                return
+            self._send_file(uaemex_path, "image/png")
             return
 
         if path.startswith("/static/"):
