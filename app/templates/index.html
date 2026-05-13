@@ -16,7 +16,13 @@
           <h1>OCR Placas</h1>
         </div>
       </div>
-      <div class="status-pill" id="connectionStatus">Laboratorio academico</div>
+      <div style="display: flex; gap: 16px; align-items: center;">
+        {% if current_user %}
+          <span style="font-weight: 600;">Hola, {{ current_user.username }}</span>
+          <a href="/logout" style="color: white; text-decoration: underline; font-weight: bold;">Salir</a>
+        {% endif %}
+        <div class="status-pill" id="connectionStatus">Laboratorio academico</div>
+      </div>
     </header>
 
     <main class="app-shell">

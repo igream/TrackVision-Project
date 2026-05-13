@@ -1,164 +1,118 @@
-# Detección de placas vehiculares, proyecto de empresa ficticia TrackVision Labs
+# Detección de Placas Vehiculares
 
-Aplicacion web para detectar placas vehiculares y leer su texto mediante procesamiento digital de imagenes y OCR.
+Aplicación para la detección y lectura de matrículas vehiculares (ALPR) utilizando Procesamiento Digital de Imágenes (PDI) y Reconocimiento Óptico de Caracteres (OCR).
+
+## Características
+
+* **Backend:** Implementado con [FastAPI](https://fastapi.tiangolo.com/), proporcionando soporte para operaciones asíncronas y concurrencia.
+* **Autenticación:** Sistema de registro y acceso de usuarios, utilizando la biblioteca `bcrypt` para el cifrado de contraseñas.
+* **Captura de Imagen:** Permite cargar archivos desde el almacenamiento local o capturar fotografías desde una cámara conectada al dispositivo.
+* **Persistencia de Datos:** Utiliza `SQLite` y `SQLAlchemy` para almacenar los resultados y metadatos. Las imágenes originales se almacenan en la base de datos en formato BLOB.
+* **Flujo de Detección:**
+  * **Detección PDI:** Proceso algorítmico clásico que aísla contornos que coinciden con las proporciones de una placa vehicular.
+  * **Lectura OCR:** Extracción de texto mediante el modelo de red neuronal `PaddleOCR`.
+
+---
 
 ## Requisitos
 
-- Python 3.10
+- **Python 3.10+**
 - Windows, macOS o Linux
-- Un entorno virtual local
 
-## Instalacion
+---
 
-1. Entrar a la carpeta del proyecto.
+## Instalación
+
+1. Clonar o descargar el repositorio y abrir una terminal en la raíz del proyecto.
+   ```powershell
+   cd "ruta\al\proyecto"
+   ```
+
+2. Crear y activar un entorno virtual.
+   **En Windows:**
+   ```powershell
+   py -3.10 -m venv .venv310
+   .\.venv310\Scripts\Activate.ps1
+   ```
+   **En macOS o Linux:**
+   ```bash
+   python3.10 -m venv .venv310
+   source .venv310/bin/activate
+   ```
+
+3. Actualizar `pip` e instalar las dependencias listadas.
+   ```powershell
+   python -m pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+---
+
+## Ejecución
+
+El punto de entrada del servidor es `run.py`. Para iniciar la aplicación web:
 
 ```powershell
-cd "ruta\al\proyecto"
+python run.py
 ```
 
-2. Crear y activar el entorno virtual.
-
-```powershell
-py -3.10 -m venv .venv310
-.\.venv310\Scripts\Activate.ps1
-```
-
-En macOS o Linux:
-
-```bash
-python3.10 -m venv .venv310
-source .venv310/bin/activate
-```
-
-3. Instalar dependencias.
-
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-## Ejecucion
-
-Iniciar la version web:
-
-```powershell
-python app.py
-```
-
-Abrir en el navegador:
+El servidor iniciará en el puerto 8000 por defecto. Para acceder a la aplicación, abrir un navegador web en la siguiente dirección:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Tambien es posible cambiar host y puerto:
+*(Para especificar una dirección IP o puerto distinto, utilizar las banderas correspondientes: `python run.py --host 0.0.0.0 --port 8080`)*
 
-```powershell
-python app.py --host 0.0.0.0 --port 8000
-```
+---
 
-Para usar la interfaz anterior de escritorio:
+## Uso
 
-```powershell
-python app.py --desktop
-```
+1. **Autenticación:**
+   - Es necesario iniciar sesión con un usuario registrado para acceder al procesamiento.
 
-## Flujo de uso
+2. **Carga de Imagen:**
+   - **Desde el dispositivo:** Seleccionar la pestaña "Cargar Imagen" para elegir un archivo local (.jpg, .png, etc.).
+   - **Desde la cámara:** Seleccionar la pestaña "Tomar Foto" para habilitar la captura web.
 
-1. Cargar una imagen del vehiculo.
-2. Elegir el modo:
-   - `Detectar placa`: localiza la region de la placa con PDI clasico.
-   - `Leer texto OCR`: procesa una placa y extrae el texto.
-3. Ejecutar el analisis.
-4. Revisar el carrusel de etapas y el resumen en pantalla.
+3. **Procesamiento:**
+   - **Detectar placa:** Aplica transformaciones de PDI para ubicar el área de la placa y realizar el recorte. Permite enviar este recorte a lectura OCR posteriormente.
+   - **Leer texto OCR:** Extrae el texto alfanumérico directamente de la imagen suministrada.
 
-## Configuracion
+4. **Resultados:**
+   Las imágenes del proceso y los textos detectados se muestran en la interfaz en un carrusel. El resumen del resultado y la imagen original se almacenan automáticamente en la base de datos.
 
-Los valores principales se pueden ajustar con variables de entorno.
+---
 
-- `OCR_WEB_HOST`: host por defecto del servidor web.
-- `OCR_WEB_PORT`: puerto por defecto del servidor web.
-- `OCR_SAVE_BASE_DIR`: carpeta donde se guardan los resultados.
+## Estructura del Proyecto
 
-Ejemplo en PowerShell:
+El proyecto sigue una arquitectura modular en directorios:
+
+* `run.py`: Punto de entrada de la aplicación.
+* `app/`: Directorio principal del código fuente de la aplicación.
+  * `app/main.py`: Inicialización de FastAPI y montaje de rutas.
+  * `app/api/`: Definición de endpoints (`routes.py`) e inyecciones de dependencias (`deps.py`).
+  * `app/core/`: Configuraciones del sistema y lógicas de seguridad (`security.py`).
+  * `app/db/`: Configuración del motor de base de datos (`database.py`) y modelos ORM (`models.py`).
+  * `app/services/`: Lógica de visión por computadora (`plate_detector.py`), OCR (`ocr_core.py`) y manipulación de archivos (`storage.py`).
+  * `app/desktop/`: Interfaz gráfica heredada de escritorio.
+  * `app/templates/` y `app/static/`: Archivos para la interfaz web (HTML, CSS, Vanilla JS).
+* `tests/`: Scripts de validación, simulaciones de subida y evaluación masiva.
+* `database.db`: Archivo de la base de datos SQLite (se genera automáticamente en el primer inicio).
+
+---
+
+## Variables de Entorno
+
+El comportamiento del servidor y las rutas locales pueden ser modificadas mediante variables de entorno antes de la ejecución:
 
 ```powershell
 $env:OCR_WEB_PORT = "8080"
-$env:OCR_SAVE_BASE_DIR = ".\Resultados"
-python app.py
+$env:OCR_SAVE_BASE_DIR = ".\ResultadosAlternativos"
+python run.py
 ```
 
-Ejemplo en bash:
-
-```bash
-export OCR_WEB_PORT=8080
-export OCR_SAVE_BASE_DIR="$HOME/OCR_Resultados"
-python app.py
-```
-
-## Estructura del proyecto
-
-- `app.py`: punto de entrada principal.
-- `web_app.py`: servidor web local y endpoints `api/process` y `api/detect`.
-- `plate_detector.py`: detector clasico de placas con PDI.
-- `evaluate_plate_detector.py`: evaluacion del detector contra el dataset local.
-- `ocr_core.py`: pipeline de OCR y postprocesamiento.
-- `storage.py`: guardado de resultados.
-- `templates/index.html`: vista principal.
-- `static/app.css`: estilos.
-- `static/app.js`: interaccion del frontend.
-- `config/backend.py`: configuracion de OCR, servidor y guardado.
-- `config/frontend.py`: configuracion visual de la interfaz de escritorio.
-
-## Resultados generados
-
-Los resultados se guardan en la carpeta definida por `OCR_SAVE_BASE_DIR`. Si no se define, se usa `Detecciones/` dentro del proyecto.
-
-Cada ejecucion puede generar:
-
-- `informacion.txt`
-- imagen original
-- bordes o mascara de procesamiento
-- contornos o region detectada
-- recorte de placa
-- imagen con texto OCR
-
-## Formatos soportados
-
-- `.jpg`
-- `.jpeg`
-- `.png`
-- `.bmp`
-- `.tiff`
-- `.tif`
-- `.webp`
-
-## Evaluacion del detector
-
-Si el dataset esta disponible en `datasets/car_plate_detection/`, la deteccion clasica puede evaluarse con:
-
-```powershell
-python evaluate_plate_detector.py --limit 50
-```
-
-Para evaluar mas imagenes, aumentar el limite o usar `--limit 0` para intentar todo el dataset.
-
-## Verificacion rapida
-
-Compilar los archivos principales:
-
-```powershell
-python -m py_compile app.py web_app.py gui.py ocr_core.py storage.py plate_detector.py evaluate_plate_detector.py config\backend.py config\frontend.py
-```
-
-Abrir la aplicacion web y comprobar que responde en:
-
-```text
-http://127.0.0.1:8000
-```
-
-## Notas
-
-- `Detecciones/` y `datasets/` estan ignorados para evitar subir archivos generados o conjuntos de datos grandes.
-- El logo debe conservarse en `src/LogoInApp.PNG`.
-- El backend actual usa la biblioteca estandar de Python y es suficiente para pruebas y desarrollo local.
+## Dependencias Principales
+* **FastAPI + Uvicorn:** Infraestructura del servidor web.
+* **SQLAlchemy + bcrypt:** Manejo de base de datos relacional y cifrado.
+* **OpenCV + PaddleOCR:** Procesamiento digital de imágenes y extracción de características ópticas.
