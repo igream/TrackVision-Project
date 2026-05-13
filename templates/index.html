@@ -11,7 +11,7 @@
       <div class="brand">
         <img class="brand-logo" src="/assets/logo" alt="Logo OCR Placas">
         <div>
-          <p class="eyebrow">Detección inteligente</p>
+          <p class="eyebrow">Procesamiento digital de imagenes</p>
           <h1>OCR Placas</h1>
         </div>
       </div>
@@ -21,11 +21,23 @@
     <main class="app-shell">
       <section class="upload-panel" aria-labelledby="uploadTitle">
         <div class="panel-copy">
-          <p class="eyebrow">Imagen de matrícula</p>
-          <h2 id="uploadTitle">Carga una foto para procesarla</h2>
+          <p class="eyebrow">Imagen vehicular</p>
+          <h2 id="uploadTitle">Carga una foto para analizarla</h2>
         </div>
 
         <form id="uploadForm" class="upload-form">
+          <fieldset class="mode-selector">
+            <legend>Modo</legend>
+            <label>
+              <input type="radio" name="mode" value="detect" checked>
+              <span>Detectar placa</span>
+            </label>
+            <label>
+              <input type="radio" name="mode" value="ocr">
+              <span>Leer texto OCR</span>
+            </label>
+          </fieldset>
+
           <label class="drop-zone" for="plateImage" id="dropZone">
             <input id="plateImage" name="plate_image" type="file" accept="image/*">
             <span class="drop-icon">+</span>
@@ -34,7 +46,7 @@
           </label>
 
           <div class="actions">
-            <button class="primary-button" type="submit" id="processButton">Procesar placa</button>
+            <button class="primary-button" type="submit" id="processButton">Detectar placa</button>
             <button class="ghost-button" type="button" id="clearButton">Limpiar</button>
           </div>
         </form>
@@ -50,12 +62,12 @@
         </div>
 
         <div class="carousel" id="carousel">
-          <button class="icon-button" type="button" id="prevStage" aria-label="Imagen anterior">‹</button>
+          <button class="icon-button" type="button" id="prevStage" aria-label="Imagen anterior">&lt;</button>
           <figure class="stage-view">
             <img id="stageImage" src="/samples/edomex.jpg" alt="Vista de procesamiento">
             <figcaption id="stageTitle">Vista previa</figcaption>
           </figure>
-          <button class="icon-button" type="button" id="nextStage" aria-label="Imagen siguiente">›</button>
+          <button class="icon-button" type="button" id="nextStage" aria-label="Imagen siguiente">&gt;</button>
         </div>
 
         <div class="stage-counter" id="stageCounter">0 / 0</div>
@@ -65,11 +77,11 @@
         <div class="summary-header">
           <div>
             <p class="eyebrow">Resumen</p>
-            <h2>Lectura OCR</h2>
+            <h2 id="summaryTitle">Deteccion PDI</h2>
           </div>
-          <span class="save-path" id="savePath">Pendiente de guardado</span>
+          <span class="save-path" id="savePath">Pendiente</span>
         </div>
-        <pre id="summaryText">Los detalles del procesamiento aparecerán aquí.</pre>
+        <pre id="summaryText">Los detalles del procesamiento apareceran aqui.</pre>
       </section>
     </main>
 
