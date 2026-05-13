@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registro | OCR Placas</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <style>
+      .auth-container { max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+      .auth-form { display: flex; flex-direction: column; gap: 16px; }
+      .auth-input { padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+      .auth-header { text-align: center; margin-bottom: 20px; }
+      .flash-msg { color: var(--danger); font-size: 0.9rem; text-align: center; margin-bottom: 10px; }
+      .auth-link { text-align: center; margin-top: 10px; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img class="brand-logo" src="/assets/logo" alt="Logo OCR Placas">
+        <div>
+          <p class="eyebrow">TrackVision Labs</p>
+          <h1>OCR Placas</h1>
+        </div>
+      </div>
+    </header>
+    <main>
+      <div class="auth-container">
+        <div class="auth-header">
+          <h2>Registro de Usuario</h2>
+        </div>
+        {% if error %}
+          <div class="flash-msg">{{ error }}</div>
+        {% endif %}
+        <form class="auth-form" method="POST" action="/register" autocomplete="off">
+          <input type="text" class="auth-input" name="username" placeholder="Elige un usuario" autocomplete="off" required>
+          <input type="password" class="auth-input" name="password" placeholder="Crea una contraseña" autocomplete="new-password" required>
+          <button type="submit" class="primary-button">Registrarse</button>
+        </form>
+        <div class="auth-link">
+          ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

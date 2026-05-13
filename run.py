@@ -1,20 +1,15 @@
 import argparse
-
-from config.backend import WEB_HOST, WEB_PORT
-
+import uvicorn
+from app.core.config_backend import WEB_HOST, WEB_PORT
 
 def iniciar_aplicacion_desktop() -> None:
-    from gui import OCRApp
-
+    from app.desktop.gui import OCRApp
     app = OCRApp()
     app.run()
 
-
 def iniciar_aplicacion_web(host: str, port: int) -> None:
-    from web_app import run_server
-
-    run_server(host=host, port=port)
-
+    print(f"OCR Placas web (FastAPI) disponible en http://{host}:{port}")
+    uvicorn.run("app.main:app", host=host, port=port, reload=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="OCR Placas")

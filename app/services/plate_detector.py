@@ -4,7 +4,7 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
-from ocr_core import SUPPORTED_FORMATS
+from app.services.ocr_core import SUPPORTED_FORMATS
 
 
 @dataclass
