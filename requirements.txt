@@ -3,6 +3,7 @@ fastapi
 uvicorn
 python-multipart
 Jinja2
+requests
 
 # Base de Datos y Autenticación
 SQLAlchemy

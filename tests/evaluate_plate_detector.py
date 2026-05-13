@@ -2,7 +2,7 @@ import argparse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from plate_detector import detect_plate_regions
+from app.services.plate_detector import detect_plate_regions
 
 
 def _read_ground_truth(xml_path: Path) -> tuple[int, int, int, int]:

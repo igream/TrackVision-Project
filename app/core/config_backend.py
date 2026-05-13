@@ -13,6 +13,12 @@ VALID_THRESHOLD = 0.80
 WEB_HOST = os.getenv("OCR_WEB_HOST", "127.0.0.1")
 WEB_PORT = int(os.getenv("OCR_WEB_PORT", "8000"))
 
+# Session settings
+SESSION_COOKIE_NAME = "session"
+SESSION_MAX_AGE_SECONDS = int(os.getenv("OCR_SESSION_MAX_AGE_SECONDS", str(30 * 24 * 60 * 60)))
+SESSION_SECRET = os.getenv("OCR_SESSION_SECRET", "ocr-placas-dev-session-secret-change-me")
+SESSION_SECURE_COOKIE = os.getenv("OCR_SESSION_SECURE", "false").lower() in {"1", "true", "yes", "on"}
+
 # PaddleOCR settings
 OCR_LANG = "en"
 OCR_USE_ANGLE_CLS = True
