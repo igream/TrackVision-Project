@@ -10,7 +10,7 @@ SQLAlchemy
 bcrypt
 
 # Procesamiento de Imágenes y OCR
-opencv-python
+opencv-python-headless
 numpy
 imutils
 paddleocr

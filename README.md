@@ -1,3 +1,13 @@
+---
+title: TrackVision Project
+emoji: 🚘
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Detección de Placas Vehiculares
 
 Aplicación para la detección y lectura de matrículas vehiculares (ALPR) utilizando Procesamiento Digital de Imágenes (PDI) y Reconocimiento Óptico de Caracteres (OCR).
@@ -76,6 +86,28 @@ python run.py --host 0.0.0.0 --port 8080
 
 ---
 
+## Despliegue En Hugging Face Spaces
+
+Este repositorio está preparado para desplegarse como Docker Space gratuito en Hugging Face.
+
+1. Crear un Space público con SDK `Docker`.
+2. Subir este repositorio al Space o configurar el Space desde Git.
+3. Definir estas variables de entorno en la configuración del Space:
+
+   ```text
+   OCR_WEB_HOST=0.0.0.0
+   OCR_WEB_PORT=7860
+   OCR_SAVE_BASE_DIR=/tmp/Detecciones
+   OCR_SESSION_SECRET=cambia-este-secreto-en-produccion
+   OCR_SESSION_SECURE=true
+   ```
+
+4. Esperar a que termine el build y abrir la URL pública del Space.
+
+El contenedor usa el puerto `7860`, SQLite efímero y almacenamiento temporal en `/tmp/Detecciones`. Antes de una exposición conviene abrir la app con anticipación y ejecutar un procesamiento para precargar PaddleOCR.
+
+---
+
 ## Uso
 
 1. **Autenticación:** Es necesario iniciar sesión con un usuario registrado para acceder al procesamiento.
@@ -88,6 +120,7 @@ python run.py --host 0.0.0.0 --port 8080
 ## Estructura del Proyecto
 
 * `run.py`: Punto de entrada de la aplicación.
+* `Dockerfile`: Imagen de despliegue para Hugging Face Spaces.
 * `app/`: Directorio principal del código fuente.
   * `app/main.py`: Inicialización de FastAPI y montaje de rutas.
   * `app/api/`: Endpoints e inyecciones de dependencias.
@@ -117,4 +150,4 @@ python run.py
 
 * **FastAPI + Uvicorn:** Infraestructura del servidor web.
 * **SQLAlchemy + bcrypt:** Manejo de base de datos relacional y cifrado.
-* **OpenCV + PaddleOCR:** Procesamiento digital de imágenes y extracción de características ópticas.
+* **OpenCV Headless + PaddleOCR:** Procesamiento digital de imágenes y extracción de características ópticas.
