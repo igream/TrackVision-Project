@@ -15,9 +15,11 @@ const stageCounter = document.querySelector("#stageCounter");
 const prevStage = document.querySelector("#prevStage");
 const nextStage = document.querySelector("#nextStage");
 const connectionStatus = document.querySelector("#connectionStatus");
+const processCropButton = document.querySelector("#processCropButton");
 
 let stages = [];
 let currentStage = 0;
+let lastCropBase64 = null;
 
 function getMode() {
   return new FormData(form).get("mode") || "detect";
@@ -62,6 +64,8 @@ function renderStage() {
 function resetResults() {
   stages = [];
   currentStage = 0;
+  lastCropBase64 = null;
+  if (processCropButton) processCropButton.style.display = "none";
   plateValue.textContent = "Sin procesar";
   confidenceValue.textContent = "0%";
   summaryText.textContent = "Los detalles del procesamiento apareceran aqui.";
@@ -110,6 +114,14 @@ async function processImage(event) {
 
     stages = data.stages || [];
     currentStage = 0;
+    
+    if (mode === "detect" && data.crop) {
+      lastCropBase64 = data.crop;
+      if (processCropButton) processCropButton.style.display = "inline-block";
+    } else {
+      lastCropBase64 = null;
+      if (processCropButton) processCropButton.style.display = "none";
+    }
     plateValue.textContent = data.plate;
     confidenceValue.textContent = `${Math.round((data.confidence || 0) * 100)}%`;
     savePath.textContent = data.savedDir || "Resultado no guardado";
@@ -140,6 +152,33 @@ clearButton.addEventListener("click", () => {
   updateFileLabel();
   resetResults();
 });
+
+if (processCropButton) {
+  processCropButton.addEventListener("click", async () => {
+    if (!lastCropBase64) return;
+
+    try {
+      const res = await fetch(lastCropBase64);
+      const blob = await res.blob();
+      const file = new File([blob], "crop.png", { type: "image/png" });
+      
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInput.files = dataTransfer.files;
+      updateFileLabel();
+
+      const ocrRadio = document.querySelector('input[name="mode"][value="ocr"]');
+      if (ocrRadio) {
+        ocrRadio.checked = true;
+        updateModeLabels();
+      }
+
+      form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    } catch (err) {
+      console.error("Error al preparar el recorte para OCR:", err);
+    }
+  });
+}
 
 prevStage.addEventListener("click", () => {
   if (!stages.length) {

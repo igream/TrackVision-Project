@@ -277,9 +277,13 @@ h2 {
 }
 
 .actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.actions > .primary-button {
+  flex: 1;
 }
 
 .primary-button,
@@ -307,6 +311,17 @@ h2 {
   background: #fff;
   color: var(--royal-deep);
   font-weight: 700;
+}
+
+.secondary-button {
+  border: 1px solid var(--uaemex-green);
+  background: var(--surface);
+  color: var(--uaemex-green);
+  font-weight: 700;
+  min-height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0 16px;
 }
 
 .results-panel {

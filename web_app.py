@@ -195,6 +195,7 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
             "summary": result.summary_text,
             "stages": stages,
             "bbox": best.bbox if best else None,
+            "crop": _image_to_data_url(best.crop) if best else None,
         }
 
     def _send_json(self, payload: Dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
