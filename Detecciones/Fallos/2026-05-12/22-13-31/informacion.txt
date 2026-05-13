@@ -1,0 +1,19 @@
+Fecha: 2026-05-12
+Hora: 22-13-31
+Tipo: Fallos
+Ruta original: C:/Users/Fer/Desktop/OCR Placas/img/bocho.jpg
+Confianza media: 0.00%
+
+Matrícula final: No se pudo aislar una matrícula válida.
+
+Textos detectados:
+
+Resumen completo:
+==================================================
+     TODOS LOS TEXTOS DETECTADOS    
+==================================================
+
+==================================================
+        MATRÍCULA DETECTADA         
+==================================================
+  No se pudo aislar el número de matrícula.

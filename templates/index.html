@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OCR Placas</title>
+    <link rel="stylesheet" href="/static/app.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img class="brand-logo" src="/assets/logo" alt="Logo OCR Placas">
+        <div>
+          <p class="eyebrow">Detección inteligente</p>
+          <h1>OCR Placas</h1>
+        </div>
+      </div>
+      <div class="status-pill" id="connectionStatus">Web local</div>
+    </header>
+
+    <main class="app-shell">
+      <section class="upload-panel" aria-labelledby="uploadTitle">
+        <div class="panel-copy">
+          <p class="eyebrow">Imagen de matrícula</p>
+          <h2 id="uploadTitle">Carga una foto para procesarla</h2>
+        </div>
+
+        <form id="uploadForm" class="upload-form">
+          <label class="drop-zone" for="plateImage" id="dropZone">
+            <input id="plateImage" name="plate_image" type="file" accept="image/*">
+            <span class="drop-icon">+</span>
+            <span class="drop-title" id="fileLabel">Seleccionar imagen</span>
+            <span class="drop-subtitle">JPG, PNG, BMP, TIFF o WEBP</span>
+          </label>
+
+          <div class="actions">
+            <button class="primary-button" type="submit" id="processButton">Procesar placa</button>
+            <button class="ghost-button" type="button" id="clearButton">Limpiar</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="results-panel" aria-live="polite">
+        <div class="result-topline">
+          <div>
+            <p class="eyebrow">Resultado</p>
+            <h2 id="plateValue">Sin procesar</h2>
+          </div>
+          <div class="confidence" id="confidenceValue">0%</div>
+        </div>
+
+        <div class="carousel" id="carousel">
+          <button class="icon-button" type="button" id="prevStage" aria-label="Imagen anterior">‹</button>
+          <figure class="stage-view">
+            <img id="stageImage" src="/samples/edomex.jpg" alt="Vista de procesamiento">
+            <figcaption id="stageTitle">Vista previa</figcaption>
+          </figure>
+          <button class="icon-button" type="button" id="nextStage" aria-label="Imagen siguiente">›</button>
+        </div>
+
+        <div class="stage-counter" id="stageCounter">0 / 0</div>
+      </section>
+
+      <section class="summary-panel">
+        <div class="summary-header">
+          <div>
+            <p class="eyebrow">Resumen</p>
+            <h2>Lectura OCR</h2>
+          </div>
+          <span class="save-path" id="savePath">Pendiente de guardado</span>
+        </div>
+        <pre id="summaryText">Los detalles del procesamiento aparecerán aquí.</pre>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

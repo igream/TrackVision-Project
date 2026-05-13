@@ -1,0 +1,32 @@
+Fecha: 2026-05-12
+Hora: 22-12-31
+Tipo: Validas
+Ruta original: C:/Users/Fer/Desktop/OCR Placas/img/2.png
+Confianza media: 98.80%
+
+Matrícula final: MMW9E40
+Fragmentos detectados:
+  - MMW9E40 (confianza: 98.80%)
+
+Textos detectados:
+  - BRASIL (confianza: 99.99%)
+  - MERCOSUL (confianza: 99.98%)
+  - MMW9E40 (confianza: 98.80%)
+  - BR (confianza: 99.97%)
+
+Resumen completo:
+==================================================
+     TODOS LOS TEXTOS DETECTADOS    
+==================================================
+  'BRASIL' (confianza: 99.99%)
+  'MERCOSUL' (confianza: 99.98%)
+  'MMW9E40' (confianza: 98.80%)
+  'BR' (confianza: 99.97%)
+
+==================================================
+        MATRÍCULA DETECTADA         
+==================================================
+  Fragmento : MMW9E40  (confianza: 98.80%)
+
+  MATRÍCULA FINAL : MMW9E40
+  Confianza media : 98.80%
