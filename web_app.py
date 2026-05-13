@@ -15,6 +15,7 @@ import cv2
 
 from ocr_core import process_plate_image
 from storage import save_detection_result
+from config.backend import WEB_HOST, WEB_PORT
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -110,6 +111,7 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
 
         try:
             result = process_plate_image(temp_path)
+            result.ruta_original = filename
             saved_dir = save_detection_result(result)
         finally:
             if os.path.exists(temp_path):
@@ -166,7 +168,7 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
         self._send_file(target)
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
+def run_server(host: str = WEB_HOST, port: int = WEB_PORT) -> None:
     server = ThreadingHTTPServer((host, port), OCRWebHandler)
     print(f"OCR Placas web disponible en http://{host}:{port}")
     try:

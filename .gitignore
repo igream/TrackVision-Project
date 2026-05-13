@@ -9,5 +9,6 @@ __pycache__/
 *.log
 *.tmp
 *.bak
+Detecciones/
 Thumbs.db
 .DS_Store
