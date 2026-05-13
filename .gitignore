@@ -10,5 +10,6 @@ __pycache__/
 *.tmp
 *.bak
 Detecciones/
+datasets/
 Thumbs.db
 .DS_Store
