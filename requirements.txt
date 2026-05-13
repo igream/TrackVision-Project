@@ -2,4 +2,5 @@ opencv-python==4.13.0.92
 numpy==2.2.6
 imutils==0.5.4
 paddleocr==3.5.0
+paddlepaddle==3.3.1
 Pillow==12.2.0

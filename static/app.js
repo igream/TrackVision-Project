@@ -7,6 +7,7 @@ const clearButton = document.querySelector("#clearButton");
 const plateValue = document.querySelector("#plateValue");
 const confidenceValue = document.querySelector("#confidenceValue");
 const summaryText = document.querySelector("#summaryText");
+const summaryTitle = document.querySelector("#summaryTitle");
 const savePath = document.querySelector("#savePath");
 const stageImage = document.querySelector("#stageImage");
 const stageTitle = document.querySelector("#stageTitle");
@@ -18,6 +19,14 @@ const connectionStatus = document.querySelector("#connectionStatus");
 let stages = [];
 let currentStage = 0;
 
+function getMode() {
+  return new FormData(form).get("mode") || "detect";
+}
+
+function getModeText() {
+  return getMode() === "detect" ? "Detectar placa" : "Leer texto OCR";
+}
+
 function setStatus(text, className = "") {
   connectionStatus.textContent = text;
   connectionStatus.className = `status-pill ${className}`.trim();
@@ -25,7 +34,12 @@ function setStatus(text, className = "") {
 
 function setLoading(isLoading) {
   processButton.disabled = isLoading;
-  processButton.textContent = isLoading ? "Procesando..." : "Procesar placa";
+  processButton.textContent = isLoading ? "Procesando..." : getModeText();
+}
+
+function updateModeLabels() {
+  processButton.textContent = getModeText();
+  summaryTitle.textContent = getMode() === "detect" ? "Deteccion PDI" : "Lectura OCR";
 }
 
 function updateFileLabel() {
@@ -50,13 +64,14 @@ function resetResults() {
   currentStage = 0;
   plateValue.textContent = "Sin procesar";
   confidenceValue.textContent = "0%";
-  summaryText.textContent = "Los detalles del procesamiento aparecerán aquí.";
-  savePath.textContent = "Pendiente de guardado";
+  summaryText.textContent = "Los detalles del procesamiento apareceran aqui.";
+  savePath.textContent = "Pendiente";
   stageImage.src = "/samples/edomex.jpg";
   stageTitle.textContent = "Vista previa";
   stageCounter.textContent = "0 / 0";
   summaryText.classList.remove("is-error", "is-success");
   setStatus("Web local");
+  updateModeLabels();
 }
 
 async function processImage(event) {
@@ -68,15 +83,22 @@ async function processImage(event) {
     return;
   }
 
+  const mode = getMode();
+  const endpoint = mode === "detect" ? "/api/detect" : "/api/process";
+  const waitText =
+    mode === "detect"
+      ? "Analizando bordes, morfologia y contornos candidatos..."
+      : "Analizando imagen, detectando contornos y ejecutando OCR...";
+
   setLoading(true);
   setStatus("Procesando");
   summaryText.classList.remove("is-error", "is-success");
-  summaryText.textContent = "Analizando imagen, detectando contornos y ejecutando OCR...";
+  summaryText.textContent = waitText;
 
   const formData = new FormData(form);
 
   try {
-    const response = await fetch("/api/process", {
+    const response = await fetch(endpoint, {
       method: "POST",
       body: formData,
     });
@@ -108,6 +130,10 @@ async function processImage(event) {
 
 fileInput.addEventListener("change", updateFileLabel);
 form.addEventListener("submit", processImage);
+
+form.querySelectorAll('input[name="mode"]').forEach((input) => {
+  input.addEventListener("change", updateModeLabels);
+});
 
 clearButton.addEventListener("click", () => {
   form.reset();

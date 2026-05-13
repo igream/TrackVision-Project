@@ -13,9 +13,10 @@ from urllib.parse import unquote, urlparse
 
 import cv2
 
-from ocr_core import process_plate_image
-from storage import save_detection_result
 from config.backend import WEB_HOST, WEB_PORT
+from ocr_core import process_plate_image
+from plate_detector import detect_plate_regions
+from storage import save_detection_result
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -72,20 +73,23 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/process":
+        if parsed.path not in {"/api/process", "/api/detect"}:
             self.send_error(HTTPStatus.NOT_FOUND, "Ruta no encontrada")
             return
 
         try:
-            payload = self._handle_process_request()
+            if parsed.path == "/api/detect":
+                payload = self._handle_detect_request()
+            else:
+                payload = self._handle_process_request()
             self._send_json(payload)
         except Exception as error:
             self._send_json({"ok": False, "error": str(error)}, HTTPStatus.BAD_REQUEST)
 
-    def _handle_process_request(self) -> Dict[str, Any]:
+    def _save_upload_to_temp(self) -> tuple[str, str]:
         content_type = self.headers.get("Content-Type", "")
         if not content_type.startswith("multipart/form-data"):
-            raise ValueError("La petición debe incluir una imagen en formulario multipart.")
+            raise ValueError("La peticion debe incluir una imagen en formulario multipart.")
 
         form = cgi.FieldStorage(
             fp=self.rfile,
@@ -103,11 +107,16 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
         filename = Path(upload.filename or "").name
         extension = Path(filename).suffix.lower()
         if extension not in SUPPORTED_UPLOAD_EXTENSIONS:
-            raise ValueError(f"Formato '{extension or 'sin extensión'}' no soportado.")
+            raise ValueError(f"Formato '{extension or 'sin extension'}' no soportado.")
 
         with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
             temp_path = temp_file.name
             temp_file.write(upload.file.read())
+
+        return temp_path, filename
+
+    def _handle_process_request(self) -> Dict[str, Any]:
+        temp_path, filename = self._save_upload_to_temp()
 
         try:
             result = process_plate_image(temp_path)
@@ -133,6 +142,35 @@ class OCRWebHandler(SimpleHTTPRequestHandler):
             "savedDir": saved_dir,
             "summary": result.resumen_texto,
             "stages": stages,
+        }
+
+    def _handle_detect_request(self) -> Dict[str, Any]:
+        temp_path, _ = self._save_upload_to_temp()
+
+        try:
+            result = detect_plate_regions(temp_path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+        stages = [
+            {
+                "title": title,
+                "image": _image_to_data_url(image),
+            }
+            for title, image in result.debug_steps
+        ]
+
+        best = result.best_region
+        return {
+            "ok": True,
+            "plate": "Placa detectada" if best else "No detectada",
+            "confidence": best.confidence if best else 0.0,
+            "type": "Deteccion PDI",
+            "savedDir": "Sin guardado automatico",
+            "summary": result.summary_text,
+            "stages": stages,
+            "bbox": best.bbox if best else None,
         }
 
     def _send_json(self, payload: Dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:

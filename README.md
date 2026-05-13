@@ -1,45 +1,22 @@
 # OCR Placas
 
-Aplicacion web para detectar y leer matriculas vehiculares a partir de imagenes. El flujo usa OpenCV para localizar la placa, PaddleOCR para leer el texto y una interfaz responsive para cargar imagenes, revisar las etapas del procesamiento y consultar el resultado.
-
-## Estado actual
-
-- Interfaz web local para computadora y celular.
-- Carga de imagenes desde el navegador.
-- Carrusel con las etapas del procesamiento: original, bordes, contorno, recorte y texto OCR.
-- Resumen de textos detectados, matricula final y confianza media.
-- Guardado automatico de resultados en `Detecciones/`.
-- Interfaz anterior de escritorio disponible como modo opcional.
-
-## Estructura principal
-
-- `app.py`: punto de entrada principal. Inicia la version web por defecto.
-- `web_app.py`: servidor HTTP local y endpoint `/api/process`.
-- `templates/index.html`: estructura de la interfaz web.
-- `static/app.css`: estilos responsive en blanco y azul rey.
-- `static/app.js`: logica del frontend, carga de imagenes y carrusel.
-- `ocr_core.py`: procesamiento de imagenes y lectura OCR.
-- `storage.py`: guardado de resultados.
-- `gui.py`: interfaz anterior de escritorio con Tkinter.
-- `config/backend.py`: parametros del servidor, OCR, procesamiento y guardado.
-- `config/frontend.py`: configuracion visual de la interfaz de escritorio.
-- `src/LogoInApp.PNG`: logo de la aplicacion.
+Aplicacion web para detectar placas vehiculares y leer su texto mediante procesamiento digital de imagenes y OCR.
 
 ## Requisitos
 
 - Python 3.10
 - Windows, macOS o Linux
-- Dependencias de `requirements.txt`
+- Un entorno virtual local
 
 ## Instalacion
 
-Clona o copia el proyecto y entra a la carpeta raiz:
+1. Entrar a la carpeta del proyecto.
 
 ```powershell
 cd "ruta\al\proyecto"
 ```
 
-Crea y activa un entorno virtual:
+2. Crear y activar el entorno virtual.
 
 ```powershell
 py -3.10 -m venv .venv310
@@ -53,44 +30,55 @@ python3.10 -m venv .venv310
 source .venv310/bin/activate
 ```
 
-Instala dependencias:
+3. Instalar dependencias.
 
 ```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Uso web
+## Ejecucion
 
-Ejecuta:
+Iniciar la version web:
 
 ```powershell
 python app.py
 ```
 
-Luego abre en el navegador:
+Abrir en el navegador:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Tambien puedes indicar host y puerto:
+Tambien es posible cambiar host y puerto:
 
 ```powershell
 python app.py --host 0.0.0.0 --port 8000
 ```
 
-Usa `0.0.0.0` si quieres probar desde otro dispositivo en la misma red. En ese caso entra desde el celular o computadora usando la IP local del equipo donde corre el servidor.
+Para usar la interfaz anterior de escritorio:
+
+```powershell
+python app.py --desktop
+```
+
+## Flujo de uso
+
+1. Cargar una imagen del vehiculo.
+2. Elegir el modo:
+   - `Detectar placa`: localiza la region de la placa con PDI clasico.
+   - `Leer texto OCR`: procesa una placa y extrae el texto.
+3. Ejecutar el analisis.
+4. Revisar el carrusel de etapas y el resumen en pantalla.
 
 ## Configuracion
 
-El proyecto evita rutas absolutas del equipo local. Los valores principales se calculan desde la carpeta del proyecto o se pueden cambiar con variables de entorno.
+Los valores principales se pueden ajustar con variables de entorno.
 
-Variables disponibles:
-
-- `OCR_WEB_HOST`: host por defecto del servidor web. Valor inicial: `127.0.0.1`.
-- `OCR_WEB_PORT`: puerto por defecto del servidor web. Valor inicial: `8000`.
-- `OCR_SAVE_BASE_DIR`: carpeta donde se guardan los resultados. Valor inicial: `Detecciones/` dentro del proyecto.
+- `OCR_WEB_HOST`: host por defecto del servidor web.
+- `OCR_WEB_PORT`: puerto por defecto del servidor web.
+- `OCR_SAVE_BASE_DIR`: carpeta donde se guardan los resultados.
 
 Ejemplo en PowerShell:
 
@@ -108,32 +96,32 @@ export OCR_SAVE_BASE_DIR="$HOME/OCR_Resultados"
 python app.py
 ```
 
-## Uso de escritorio
+## Estructura del proyecto
 
-La interfaz anterior con Tkinter sigue disponible:
-
-```powershell
-python app.py --desktop
-```
+- `app.py`: punto de entrada principal.
+- `web_app.py`: servidor web local y endpoints `api/process` y `api/detect`.
+- `plate_detector.py`: detector clasico de placas con PDI.
+- `evaluate_plate_detector.py`: evaluacion del detector contra el dataset local.
+- `ocr_core.py`: pipeline de OCR y postprocesamiento.
+- `storage.py`: guardado de resultados.
+- `templates/index.html`: vista principal.
+- `static/app.css`: estilos.
+- `static/app.js`: interaccion del frontend.
+- `config/backend.py`: configuracion de OCR, servidor y guardado.
+- `config/frontend.py`: configuracion visual de la interfaz de escritorio.
 
 ## Resultados generados
 
-Cada procesamiento guarda informacion en la carpeta configurada por `OCR_SAVE_BASE_DIR`. Si no se configura, se usa:
+Los resultados se guardan en la carpeta definida por `OCR_SAVE_BASE_DIR`. Si no se define, se usa `Detecciones/` dentro del proyecto.
 
-```text
-Detecciones/
-```
-
-La carpeta se organiza por tipo de resultado, fecha y hora. Incluye:
+Cada ejecucion puede generar:
 
 - `informacion.txt`
 - imagen original
-- bordes Canny
-- contorno detectado
-- recorte de la placa
+- bordes o mascara de procesamiento
+- contornos o region detectada
+- recorte de placa
 - imagen con texto OCR
-
-`Detecciones/` esta en `.gitignore` porque contiene archivos generados y puede incluir datos de pruebas.
 
 ## Formatos soportados
 
@@ -145,36 +133,32 @@ La carpeta se organiza por tipo de resultado, fecha y hora. Incluye:
 - `.tif`
 - `.webp`
 
-## Verificacion rapida
+## Evaluacion del detector
 
-Para comprobar que los archivos Python cargan correctamente:
+Si el dataset esta disponible en `datasets/car_plate_detection/`, la deteccion clasica puede evaluarse con:
 
 ```powershell
-python -m py_compile app.py web_app.py gui.py ocr_core.py storage.py config\backend.py config\frontend.py
+python evaluate_plate_detector.py --limit 50
 ```
 
-En macOS o Linux:
+Para evaluar mas imagenes, aumentar el limite o usar `--limit 0` para intentar todo el dataset.
 
-```bash
-python -m py_compile app.py web_app.py gui.py ocr_core.py storage.py config/backend.py config/frontend.py
+## Verificacion rapida
+
+Compilar los archivos principales:
+
+```powershell
+python -m py_compile app.py web_app.py gui.py ocr_core.py storage.py plate_detector.py evaluate_plate_detector.py config\backend.py config\frontend.py
 ```
 
-Para validar que la web responde, ejecuta la app y abre:
+Abrir la aplicacion web y comprobar que responde en:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-## Compartir el proyecto
+## Notas
 
-Antes de compartir o subir el proyecto:
-
-- No incluyas entornos virtuales como `.venv/`, `.venv310/`, `venv/` o `ENV/`.
-- No incluyas `__pycache__/`, logs ni archivos temporales.
-- No incluyas `Detecciones/` salvo que quieras compartir resultados de prueba.
-- Conserva el logo con el nombre `src/LogoInApp.PNG`, respetando mayusculas y minusculas para compatibilidad con Linux.
-- Si cambias rutas de salida o puerto, documentalo mediante variables de entorno, no con rutas absolutas dentro del codigo.
-
-## Nota de produccion
-
-El servidor actual usa la libreria estandar de Python y es suficiente para pruebas locales o demostraciones. Para produccion conviene migrar el backend a FastAPI o Flask y servir el frontend con un servidor web dedicado.
+- `Detecciones/` y `datasets/` estan ignorados para evitar subir archivos generados o conjuntos de datos grandes.
+- El logo debe conservarse en `src/LogoInApp.PNG`.
+- El backend actual usa la biblioteca estandar de Python y es suficiente para pruebas y desarrollo local.
