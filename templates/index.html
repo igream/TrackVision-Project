@@ -34,7 +34,12 @@
       <section class="upload-panel" aria-labelledby="uploadTitle">
         <div class="panel-copy">
           <p class="eyebrow">Imagen vehicular</p>
-          <h2 id="uploadTitle">Carga una foto para analizarla</h2>
+          <h2 id="uploadTitle">Carga o captura una foto</h2>
+        </div>
+
+        <div class="source-tabs" aria-label="Origen de imagen">
+          <button type="button" class="tab-button active" data-target="uploadSection">Subir archivo</button>
+          <button type="button" class="tab-button" data-target="cameraSection">Tomar foto</button>
         </div>
 
         <form id="uploadForm" class="upload-form">
@@ -50,16 +55,32 @@
             </label>
           </fieldset>
 
-          <label class="drop-zone" for="plateImage" id="dropZone">
-            <input id="plateImage" name="plate_image" type="file" accept="image/*">
-            <span class="drop-icon">+</span>
-            <span class="drop-title" id="fileLabel">Seleccionar imagen</span>
-            <span class="drop-subtitle">JPG, PNG, BMP, TIFF o WEBP</span>
-          </label>
+          <div id="uploadSection" class="source-section active">
+            <label class="drop-zone" for="plateImage" id="dropZone">
+              <input id="plateImage" name="plate_image" type="file" accept="image/*">
+              <span class="drop-icon">+</span>
+              <span class="drop-title" id="fileLabel">Seleccionar imagen</span>
+              <span class="drop-subtitle">JPG, PNG, BMP, TIFF o WEBP</span>
+            </label>
+          </div>
+
+          <div id="cameraSection" class="source-section" style="display: none;">
+            <div class="camera-container">
+              <select id="cameraSelect" class="camera-select" aria-label="Seleccionar cámara">
+                <option value="">Cargando cámaras...</option>
+              </select>
+              <div class="video-wrapper">
+                <video id="cameraStream" autoplay playsinline muted></video>
+              </div>
+              <button type="button" class="ghost-button" id="captureButton" style="width: 100%; margin-top: 10px;">📸 Capturar foto</button>
+              <canvas id="cameraCanvas" style="display: none;"></canvas>
+            </div>
+          </div>
 
           <div class="actions">
             <button class="primary-button" type="submit" id="processButton">Detectar placa</button>
             <button class="ghost-button" type="button" id="clearButton">Limpiar</button>
+            <button class="secondary-button" type="button" id="processCropButton" style="display: none;">Procesar placa obtenida</button>
           </div>
         </form>
       </section>
