@@ -3,6 +3,8 @@ import re
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import lru_cache
+from threading import Lock
 from typing import List, Optional, Tuple
 
 import cv2
@@ -29,6 +31,7 @@ from app.core.config_backend import (
 )
 
 SUPPORTED_FORMATS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp'}
+_OCR_PREDICT_LOCK = Lock()
 
 @dataclass
 class PlateCandidate:
@@ -60,6 +63,16 @@ class DetectionResult:
     @property
     def tipo(self) -> str:
         return "Validas" if self.promedio_confianza > VALID_THRESHOLD else "Fallos"
+
+
+@lru_cache(maxsize=1)
+def get_ocr_engine() -> PaddleOCR:
+    return PaddleOCR(
+        use_angle_cls=OCR_USE_ANGLE_CLS,
+        lang=OCR_LANG,
+        device=OCR_DEVICE,
+        enable_mkldnn=OCR_ENABLE_MKLDNN,
+    )
 
 
 def calcular_cer(referencia: str, hipotesis: str) -> float:
@@ -130,14 +143,14 @@ def generar_resumen_texto(
 ) -> List[str]:
     resumen_texto = []
     resumen_texto.append("=" * 50)
-    resumen_texto.append("     TODOS LOS TEXTOS DETECTADOS    ")
+    resumen_texto.append("        TODOS LOS TEXTOS DETECTADOS        ")
     resumen_texto.append("=" * 50)
 
     for texto, confianza in todos_los_textos:
         resumen_texto.append(f"  '{texto.strip()}' (confianza: {confianza:.2%})")
 
     resumen_texto.append("\n" + "=" * 50)
-    resumen_texto.append("        MATRÍCULA DETECTADA         ")
+    resumen_texto.append("        MATRÍCULA DETECTADA        ")
     resumen_texto.append("=" * 50)
 
     if not matricula_partes:
@@ -156,7 +169,7 @@ def generar_resumen_texto(
     if texto_real:
         cer = calcular_cer(texto_real, texto_matricula)
         resumen_texto.append("\n" + "=" * 50)
-        resumen_texto.append("            MÉTRICAS CER            ")
+        resumen_texto.append("            MÉTRICAS CER            ")
         resumen_texto.append("=" * 50)
         resumen_texto.append(f"  Texto real      : {texto_real.upper()}")
         resumen_texto.append(f"  Texto OCR       : {texto_matricula}")
@@ -235,14 +248,15 @@ def process_plate_image(ruta_imagen: str, texto_real: Optional[str] = None) -> D
         border_type,
     )
 
-    ocr = PaddleOCR(use_angle_cls=OCR_USE_ANGLE_CLS, lang=OCR_LANG, device=OCR_DEVICE, enable_mkldnn=OCR_ENABLE_MKLDNN)
+    ocr = get_ocr_engine()
 
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as archivo_temporal:
         ruta_temporal = archivo_temporal.name
 
     try:
         cv2.imwrite(ruta_temporal, cropped_padded)
-        resultados = list(ocr.predict(ruta_temporal))
+        with _OCR_PREDICT_LOCK:
+            resultados = list(ocr.predict(ruta_temporal))
     finally:
         if os.path.exists(ruta_temporal):
             os.remove(ruta_temporal)

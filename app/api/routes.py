@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.database import get_db
-from app.core.security import get_password_hash, verify_password
+from app.core.security import clear_session_cookie, get_password_hash, set_session_cookie, verify_password
 from app.db.models import User, Detection
 from app.services.ocr_core import process_plate_image
 from app.services.plate_detector import detect_plate_regions
@@ -71,7 +71,7 @@ async def login(
         return templates.TemplateResponse(request=request, name="login.html", context={"error": "Usuario o contraseña incorrectos"})
     
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    response.set_cookie(key="user_id", value=str(user.id), httponly=True)
+    set_session_cookie(response, user.id)
     return response
 
 @router.get("/register", response_class=HTMLResponse)
@@ -98,13 +98,13 @@ async def register(
     db.refresh(new_user)
     
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    response.set_cookie(key="user_id", value=str(new_user.id), httponly=True)
+    set_session_cookie(response, new_user.id)
     return response
 
 @router.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    response.delete_cookie("user_id")
+    clear_session_cookie(response)
     return response
 
 @router.get("/assets/logo")
