@@ -1,4 +1,4 @@
-# OCR Placas
+# Detección de placas vehiculares, proyecto de empresa ficticia TrackVision Labs
 
 Aplicacion web para detectar placas vehiculares y leer su texto mediante procesamiento digital de imagenes y OCR.
 
