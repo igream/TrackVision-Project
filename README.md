@@ -12,6 +12,16 @@ pinned: false
 
 Aplicación para la detección y lectura de matrículas vehiculares (ALPR) utilizando Procesamiento Digital de Imágenes (PDI) y Reconocimiento Óptico de Caracteres (OCR).
 
+## Demo En Línea
+
+La versión pública del proyecto está desplegada en Hugging Face Spaces:
+
+```text
+https://igream-trackvision-project.hf.space
+```
+
+La aplicación permite registrarse, iniciar sesión, subir imágenes vehiculares, detectar regiones candidatas de placa y ejecutar OCR sobre la imagen o el recorte detectado.
+
 ## Características
 
 * **Backend:** Implementado con [FastAPI](https://fastapi.tiangolo.com/), proporcionando soporte para operaciones asíncronas y concurrencia.
@@ -64,9 +74,9 @@ Aplicación para la detección y lectura de matrículas vehiculares (ALPR) utili
 
 ---
 
-## Ejecución
+## Ejecución Local
 
-El punto de entrada del servidor es `run.py`. Para iniciar la aplicación web:
+El punto de entrada del servidor es `run.py`. Para iniciar la aplicación web con la configuración local por defecto:
 
 ```powershell
 python run.py
@@ -84,6 +94,8 @@ Para especificar una dirección IP o puerto distinto:
 python run.py --host 0.0.0.0 --port 8080
 ```
 
+Si se definen variables de entorno para una ejecución local por HTTP, usar `OCR_SESSION_SECURE=false`; reservar `true` para despliegues HTTPS como Hugging Face Spaces.
+
 ---
 
 ## Despliegue En Hugging Face Spaces
@@ -92,19 +104,36 @@ Este repositorio está preparado para desplegarse como Docker Space gratuito en 
 
 1. Crear un Space público con SDK `Docker`.
 2. Subir este repositorio al Space o configurar el Space desde Git.
-3. Definir estas variables de entorno en la configuración del Space:
+3. Definir estas variables de entorno y secretos en la configuración del Space:
 
    ```text
    OCR_WEB_HOST=0.0.0.0
    OCR_WEB_PORT=7860
    OCR_SAVE_BASE_DIR=/tmp/Detecciones
-   OCR_SESSION_SECRET=cambia-este-secreto-en-produccion
    OCR_SESSION_SECURE=true
    ```
 
-4. Esperar a que termine el build y abrir la URL pública del Space.
+   ```text
+   OCR_SESSION_SECRET=<secreto-largo-generado-para-produccion>
+   ```
 
-El contenedor usa el puerto `7860`, SQLite efímero y almacenamiento temporal en `/tmp/Detecciones`. Antes de una exposición conviene abrir la app con anticipación y ejecutar un procesamiento para precargar PaddleOCR.
+4. Esperar a que termine el build y abrir la URL pública generada por Hugging Face. El formato habitual es:
+
+   ```text
+   https://<usuario>-<nombre-del-space>.hf.space
+   ```
+
+El contenedor usa el puerto `7860`, SQLite efímero y almacenamiento temporal en `/tmp/Detecciones`. El primer arranque puede tardar varios minutos mientras se construye la imagen, inicia el contenedor y se cargan los modelos de OCR. Si el Space se suspende por inactividad, volver a abrir la URL pública lo despierta automáticamente; también puede reiniciarse con:
+
+```powershell
+.\.venv310\Scripts\hf.exe spaces restart <usuario>/<nombre-del-space>
+```
+
+Para pausarlo manualmente:
+
+```powershell
+.\.venv310\Scripts\hf.exe spaces pause <usuario>/<nombre-del-space>
+```
 
 ---
 
@@ -142,9 +171,11 @@ El comportamiento del servidor, la sesión y las rutas locales pueden modificars
 $env:OCR_WEB_PORT = "8080"
 $env:OCR_SAVE_BASE_DIR = ".\app\Detecciones"
 $env:OCR_SESSION_SECRET = "cambia-este-secreto-en-produccion"
-$env:OCR_SESSION_SECURE = "true"
+$env:OCR_SESSION_SECURE = "false"
 python run.py
 ```
+
+En despliegues HTTPS, como Hugging Face Spaces, usar `OCR_SESSION_SECURE=true`.
 
 ## Dependencias Principales
 
