@@ -1,13 +1,3 @@
----
-title: TrackVision Project
-emoji: 🚘
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # Detección de Placas Vehiculares
 
 Aplicación para la detección y lectura de matrículas vehiculares (ALPR) utilizando Procesamiento Digital de Imágenes (PDI) y Reconocimiento Óptico de Caracteres (OCR).
@@ -102,9 +92,21 @@ Si se definen variables de entorno para una ejecución local por HTTP, usar `OCR
 
 Este repositorio está preparado para desplegarse como Docker Space gratuito en Hugging Face.
 
-1. Crear un Space público con SDK `Docker`.
-2. Subir este repositorio al Space o configurar el Space desde Git.
-3. Definir estas variables de entorno y secretos en la configuración del Space:
+El README principal está redactado para GitHub. Durante el despliegue, el script `scripts/deploy_huggingface.py` sube automáticamente un README específico para Hugging Face con la metadata requerida por Spaces (`sdk: docker`, `app_port: 7860`, etc.).
+
+1. Iniciar sesión en Hugging Face:
+
+   ```powershell
+   .\.venv310\Scripts\hf.exe auth login
+   ```
+
+2. Desplegar el proyecto:
+
+   ```powershell
+   .\.venv310\Scripts\python.exe scripts\deploy_huggingface.py --repo-id <usuario>/<nombre-del-space> --create --configure
+   ```
+
+3. Definir estas variables de entorno y secretos en la configuración del Space, si no se usa `--configure`:
 
    ```text
    OCR_WEB_HOST=0.0.0.0
