@@ -4,6 +4,7 @@ uvicorn
 python-multipart
 Jinja2
 requests
+huggingface_hub
 
 # Base de Datos y Autenticación
 SQLAlchemy
