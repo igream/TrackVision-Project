@@ -1,6 +1,6 @@
 # Detección de Placas Vehiculares
 
-Aplicación para la detección y lectura de matrículas vehiculares (ALPR) utilizando Procesamiento Digital de Imágenes (PDI) y Reconocimiento Óptico de Caracteres (OCR).
+Aplicación para la detección de vehículos, localización de placas y lectura de matrículas vehiculares (ALPR) mediante Procesamiento Digital de Imágenes (PDI) y Reconocimiento Óptico de Caracteres (OCR).
 
 ## Demo En Línea
 
@@ -10,17 +10,21 @@ La versión pública del proyecto está desplegada en Hugging Face Spaces:
 https://igream-trackvision-project.hf.space
 ```
 
-La aplicación permite registrarse, iniciar sesión, subir imágenes vehiculares, detectar regiones candidatas de placa y ejecutar OCR sobre la imagen o el recorte detectado.
+La aplicación permite registrarse, iniciar sesión, subir imágenes vehiculares o capturarlas desde cámara, detectar el carro principal, detectar regiones candidatas de placa, ejecutar OCR sobre una imagen o recorte, y consultar el historial privado de detecciones del usuario autenticado.
 
 ## Características
 
 * **Backend:** Implementado con [FastAPI](https://fastapi.tiangolo.com/), proporcionando soporte para operaciones asíncronas y concurrencia.
 * **Autenticación:** Sistema de registro y acceso de usuarios, utilizando `bcrypt` para el cifrado de contraseñas y cookies de sesión firmadas.
 * **Captura de Imagen:** Permite cargar archivos desde el almacenamiento local o capturar fotografías desde una cámara conectada al dispositivo.
-* **Persistencia de Datos:** Utiliza SQLite y SQLAlchemy para almacenar resultados y metadatos. Las imágenes originales se almacenan en la base de datos en formato BLOB.
+* **Persistencia de Datos:** Utiliza SQLite y SQLAlchemy para almacenar resultados, metadatos, imágenes originales y recortes relevantes en formato BLOB.
 * **Flujo de Detección:**
-  * **Detección PDI:** Proceso algorítmico clásico que aísla contornos que coinciden con las proporciones de una placa vehicular.
-  * **Lectura OCR:** Extracción de texto mediante el modelo de red neuronal PaddleOCR.
+  * **Detección de Carro:** Proceso PDI clásico que localiza el vehículo principal mediante contraste, bordes, morfología y contornos.
+  * **Detección PDI de Placa:** Proceso algorítmico clásico que aísla contornos que coinciden con las proporciones de una placa vehicular.
+  * **Lectura OCR:** Extracción de texto mediante PaddleOCR sobre la imagen seleccionada o sobre un recorte de placa.
+* **Resultados por Servicio:** La interfaz conserva durante la sesión los carruseles de carro, placa y OCR, permitiendo volver a visualizar resultados ya procesados sin ejecutar nuevamente el servicio.
+* **Historial Privado:** Cada usuario puede consultar únicamente sus propias detecciones, con filtros por texto, servicio, estado y fecha.
+* **Interfaz Responsiva:** La experiencia está adaptada para uso en celulares sin perder funcionalidad en escritorio.
 
 ---
 
@@ -72,7 +76,7 @@ El punto de entrada del servidor es `run.py`. Para iniciar la aplicación web co
 python run.py
 ```
 
-El servidor iniciará en el puerto 8000 por defecto. Para acceder a la aplicación, abrir un navegador web en:
+El servidor inicia en el puerto 8000 por defecto. Para acceder a la aplicación, abrir un navegador web en:
 
 ```text
 http://127.0.0.1:8000
@@ -94,7 +98,7 @@ Este repositorio está preparado para desplegarse como Docker Space gratuito en 
 
 El README principal está redactado para GitHub. Durante el despliegue, el script `scripts/deploy_huggingface.py` sube automáticamente un README específico para Hugging Face con la metadata requerida por Spaces (`sdk: docker`, `app_port: 7860`, etc.).
 
-1. Iniciar sesión en Hugging Face:
+1. Iniciar sesión en Hugging Face o definir un token en la variable de entorno `HF_TOKEN`.
 
    ```powershell
    .\.venv310\Scripts\hf.exe auth login
@@ -143,8 +147,10 @@ Para pausarlo manualmente:
 
 1. **Autenticación:** Es necesario iniciar sesión con un usuario registrado para acceder al procesamiento.
 2. **Carga de Imagen:** Seleccionar la pestaña "Subir archivo" para elegir una imagen local o "Tomar foto" para capturar desde cámara.
-3. **Procesamiento:** Usar "Detectar placa" para ubicar y recortar una placa, o "Leer texto OCR" para extraer texto alfanumérico.
-4. **Resultados:** Las imágenes del proceso y los textos detectados se muestran en la interfaz. El resumen y la imagen original se almacenan automáticamente.
+3. **Procesamiento Por Servicio:** Usar "Detectar carro", "Detectar placa" o "Leer texto OCR" según el análisis requerido.
+4. **Encadenamiento De Recortes:** Después de detectar carro, el recorte puede usarse para detectar placa; después de detectar placa, el recorte puede usarse para OCR.
+5. **Resultados Actuales:** Los carruseles de los servicios ejecutados durante la sesión pueden alternarse desde los botones de resultado.
+6. **Historial:** La sección "Mis detecciones" permite consultar detecciones guardadas con imagen original, recorte de placa y reporte visual, mostrando únicamente datos del usuario autenticado.
 
 ---
 
