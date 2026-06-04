@@ -52,6 +52,10 @@
           <fieldset class="mode-selector">
             <legend>Modo</legend>
             <label>
+              <input type="radio" name="mode" value="vehicle">
+              <span>Detectar carro</span>
+            </label>
+            <label>
               <input type="radio" name="mode" value="detect" checked>
               <span>Detectar placa</span>
             </label>
@@ -86,7 +90,8 @@
           <div class="actions">
             <button class="primary-button" type="submit" id="processButton">Detectar placa</button>
             <button class="ghost-button" type="button" id="clearButton">Limpiar</button>
-            <button class="secondary-button" type="button" id="processCropButton" style="display: none;">Procesar placa obtenida</button>
+            <button class="secondary-button" type="button" id="useVehicleButton" style="display: none;">Usar carro para detectar placa</button>
+            <button class="secondary-button" type="button" id="processCropButton" style="display: none;">Usar placa para OCR</button>
           </div>
         </form>
       </section>
@@ -98,6 +103,12 @@
             <h2 id="plateValue">Sin procesar</h2>
           </div>
           <div class="confidence" id="confidenceValue">0%</div>
+        </div>
+
+        <div class="result-switcher" aria-label="Resultados de la sesion actual">
+          <button type="button" class="result-tab" data-result-mode="vehicle" disabled>Carro</button>
+          <button type="button" class="result-tab" data-result-mode="detect" disabled>Placa</button>
+          <button type="button" class="result-tab" data-result-mode="ocr" disabled>OCR</button>
         </div>
 
         <div class="carousel" id="carousel">
@@ -120,7 +131,56 @@
           </div>
           <span class="save-path" id="savePath">Pendiente</span>
         </div>
-        <pre id="summaryText">Los detalles del procesamiento apareceran aqui.</pre>
+        <div id="summaryText" class="analysis-report">
+          <p class="empty-state">Los detalles del procesamiento apareceran aqui.</p>
+        </div>
+      </section>
+
+      <section class="history-panel">
+        <div class="summary-header">
+          <div>
+            <p class="eyebrow">Privado por usuario</p>
+            <h2>Mis detecciones</h2>
+          </div>
+          <button class="ghost-button" type="button" id="refreshHistoryButton">Actualizar</button>
+        </div>
+        <div class="history-filters" aria-label="Filtros de detecciones">
+          <label>
+            <span>Buscar</span>
+            <input id="historySearch" type="search" placeholder="Placa o archivo">
+          </label>
+          <label>
+            <span>Servicio</span>
+            <select id="historyMode">
+              <option value="">Todos</option>
+              <option value="vehicle">Carro</option>
+              <option value="detect">Placa</option>
+              <option value="ocr">OCR</option>
+            </select>
+          </label>
+          <label>
+            <span>Estado</span>
+            <select id="historyStatus">
+              <option value="">Todos</option>
+              <option value="detected">Detectadas</option>
+              <option value="not_detected">No detectadas</option>
+            </select>
+          </label>
+          <label>
+            <span>Desde</span>
+            <input id="historyDateFrom" type="date">
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input id="historyDateTo" type="date">
+          </label>
+        </div>
+        <div class="history-layout">
+          <div class="history-list" id="historyList"></div>
+          <article class="history-detail" id="historyDetail">
+            <p class="empty-state">Selecciona una deteccion para ver imagen original, recorte y reporte.</p>
+          </article>
+        </div>
       </section>
     </main>
 

@@ -16,17 +16,33 @@ const prevStage = document.querySelector("#prevStage");
 const nextStage = document.querySelector("#nextStage");
 const connectionStatus = document.querySelector("#connectionStatus");
 const processCropButton = document.querySelector("#processCropButton");
+const useVehicleButton = document.querySelector("#useVehicleButton");
+const refreshHistoryButton = document.querySelector("#refreshHistoryButton");
+const historyList = document.querySelector("#historyList");
+const historyDetail = document.querySelector("#historyDetail");
+const historySearch = document.querySelector("#historySearch");
+const historyMode = document.querySelector("#historyMode");
+const historyStatus = document.querySelector("#historyStatus");
+const historyDateFrom = document.querySelector("#historyDateFrom");
+const historyDateTo = document.querySelector("#historyDateTo");
+const resultTabs = document.querySelectorAll(".result-tab");
 
 let stages = [];
 let currentStage = 0;
-let lastCropBase64 = null;
+let originalFile = null;
+let lastVehicleCropBase64 = null;
+let lastPlateCropBase64 = null;
+let sessionResults = {};
+let activeResultMode = null;
 
 function getMode() {
   return new FormData(form).get("mode") || "detect";
 }
 
-function getModeText() {
-  return getMode() === "detect" ? "Detectar placa" : "Leer texto OCR";
+function modeText(mode = getMode()) {
+  if (mode === "vehicle") return "Detectar carro";
+  if (mode === "ocr") return "Leer texto OCR";
+  return "Detectar placa";
 }
 
 function setStatus(text, className = "") {
@@ -36,17 +52,30 @@ function setStatus(text, className = "") {
 
 function setLoading(isLoading) {
   processButton.disabled = isLoading;
-  processButton.textContent = isLoading ? "Procesando..." : getModeText();
+  processButton.textContent = isLoading ? "Procesando..." : modeText();
+}
+
+function setFile(file, keepOriginal = true) {
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  fileInput.files = dataTransfer.files;
+  if (keepOriginal) originalFile = file;
+  updateFileLabel();
 }
 
 function updateModeLabels() {
-  processButton.textContent = getModeText();
-  summaryTitle.textContent = getMode() === "detect" ? "Deteccion PDI" : "Lectura OCR";
+  const mode = getMode();
+  processButton.textContent = modeText(mode);
+  summaryTitle.textContent =
+    mode === "vehicle" ? "Deteccion de carro" : mode === "ocr" ? "Lectura OCR" : "Deteccion PDI";
 }
 
 function updateFileLabel() {
   const file = fileInput.files[0];
   fileLabel.textContent = file ? file.name : "Seleccionar imagen";
+  if (file && (!originalFile || !file.name.startsWith("recorte_"))) {
+    originalFile = file;
+  }
 }
 
 function renderStage() {
@@ -61,48 +90,153 @@ function renderStage() {
   stageCounter.textContent = `${currentStage + 1} / ${stages.length}`;
 }
 
+function updateResultTabs() {
+  resultTabs.forEach((button) => {
+    const mode = button.dataset.resultMode;
+    const hasResult = Boolean(sessionResults[mode]);
+    button.disabled = !hasResult;
+    button.classList.toggle("active", mode === activeResultMode && hasResult);
+  });
+}
+
+function showSessionResult(mode) {
+  const item = sessionResults[mode];
+  if (!item) return;
+
+  activeResultMode = mode;
+  stages = item.stages || [];
+  currentStage = item.currentStage || 0;
+  plateValue.textContent = item.data.plate || "Sin resultado";
+  confidenceValue.textContent = `${Math.round((item.data.confidence || 0) * 100)}%`;
+  savePath.textContent = item.data.savedDir || "Resultado no guardado";
+  renderAnalysisReport(item.data, mode);
+  renderStage();
+  updateResultTabs();
+  setStatus(item.data.type || "Procesado", "is-success");
+}
+
+function setContextButtons() {
+  useVehicleButton.style.display = lastVehicleCropBase64 ? "inline-block" : "none";
+  processCropButton.style.display = lastPlateCropBase64 ? "inline-block" : "none";
+}
+
 function resetResults() {
   stages = [];
   currentStage = 0;
-  lastCropBase64 = null;
-  if (processCropButton) processCropButton.style.display = "none";
+  originalFile = null;
+  lastVehicleCropBase64 = null;
+  lastPlateCropBase64 = null;
+  sessionResults = {};
+  activeResultMode = null;
   plateValue.textContent = "Sin procesar";
   confidenceValue.textContent = "0%";
-  summaryText.textContent = "Los detalles del procesamiento apareceran aqui.";
+  summaryText.innerHTML = `<p class="empty-state">Los detalles del procesamiento apareceran aqui.</p>`;
   savePath.textContent = "Pendiente";
   stageImage.src = "/samples/edomex.jpg";
   stageTitle.textContent = "Vista previa";
   stageCounter.textContent = "0 / 0";
   summaryText.classList.remove("is-error", "is-success");
+  setContextButtons();
+  updateResultTabs();
   setStatus("Laboratorio academico");
   updateModeLabels();
+}
+
+function renderAnalysisReport(data, mode) {
+  const report = data.report || {};
+  const summary = data.summary || [];
+  const bbox = data.bbox || report?.plate?.bbox || report?.vehicle?.bbox;
+  const parts = report.plateParts || [];
+  const texts = report.allTexts || [];
+  const summaryItems = summary
+    .filter(line => line && !line.startsWith("="))
+    .slice(0, 8);
+
+  summaryText.innerHTML = `
+    <div class="report-grid">
+      <div class="metric-card">
+        <span>Resultado</span>
+        <strong>${escapeHtml(data.plate || "Sin resultado")}</strong>
+      </div>
+      <div class="metric-card">
+        <span>Confianza</span>
+        <strong>${Math.round((data.confidence || 0) * 100)}%</strong>
+      </div>
+      <div class="metric-card">
+        <span>Servicio</span>
+        <strong>${escapeHtml(formatMode(mode))}</strong>
+      </div>
+    </div>
+    ${
+      bbox
+        ? `<div class="bbox-strip">
+            <span>x=${bbox[0]}</span><span>y=${bbox[1]}</span><span>w=${bbox[2]}</span><span>h=${bbox[3]}</span>
+          </div>`
+        : ""
+    }
+    ${
+      parts.length
+        ? `<div class="report-section"><h3>Fragmentos OCR</h3>${parts.map(item => `<p>${escapeHtml(item.text)} <span>${Math.round((item.confidence || 0) * 100)}%</span></p>`).join("")}</div>`
+        : ""
+    }
+    ${
+      texts.length
+        ? `<div class="report-section"><h3>Textos detectados</h3>${texts.map(item => `<p>${escapeHtml(item.text)} <span>${Math.round((item.confidence || 0) * 100)}%</span></p>`).join("")}</div>`
+        : ""
+    }
+    <div class="report-section">
+      <h3>Analisis</h3>
+      ${
+        summaryItems.length
+          ? summaryItems.map(line => `<p>${escapeHtml(line)}</p>`).join("")
+          : "<p>No hay detalles adicionales.</p>"
+      }
+    </div>
+  `;
+}
+
+async function dataUrlToFile(dataUrl, filename) {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], filename, { type: blob.type || "image/png" });
+}
+
+function endpointForMode(mode) {
+  if (mode === "vehicle") return "/api/vehicle";
+  if (mode === "ocr") return "/api/process";
+  return "/api/detect";
+}
+
+function waitTextForMode(mode) {
+  if (mode === "vehicle") return "Detectando el carro principal con PDI clasico...";
+  if (mode === "ocr") return "Ejecutando OCR sobre la imagen seleccionada...";
+  return "Detectando regiones candidatas de placa...";
 }
 
 async function processImage(event) {
   event.preventDefault();
 
   if (!fileInput.files.length) {
-    summaryText.textContent = "Seleccione una imagen antes de procesar.";
+    summaryText.innerHTML = `<p class="empty-state is-error">Seleccione una imagen antes de procesar.</p>`;
     summaryText.classList.add("is-error");
     return;
   }
 
   const mode = getMode();
-  const endpoint = mode === "detect" ? "/api/detect" : "/api/process";
-  const waitText =
-    mode === "detect"
-      ? "Analizando bordes, morfologia y contornos candidatos..."
-      : "Analizando imagen, detectando contornos y ejecutando OCR...";
-
   setLoading(true);
   setStatus("Procesando");
   summaryText.classList.remove("is-error", "is-success");
-  summaryText.textContent = waitText;
+    summaryText.innerHTML = `<p class="empty-state">${escapeHtml(waitTextForMode(mode))}</p>`;
 
-  const formData = new FormData(form);
+  const formData = new FormData();
+  formData.append("mode", mode);
+  formData.append("plate_image", fileInput.files[0]);
+  if (mode === "ocr" && originalFile) {
+    formData.append("original_image", originalFile);
+  }
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(endpointForMode(mode), {
       method: "POST",
       body: formData,
     });
@@ -112,32 +246,155 @@ async function processImage(event) {
       throw new Error(data.error || "No se pudo procesar la imagen.");
     }
 
-    stages = data.stages || [];
-    currentStage = 0;
-    
-    if (mode === "detect" && data.crop) {
-      lastCropBase64 = data.crop;
-      if (processCropButton) processCropButton.style.display = "inline-block";
-    } else {
-      lastCropBase64 = null;
-      if (processCropButton) processCropButton.style.display = "none";
-    }
-    plateValue.textContent = data.plate;
-    confidenceValue.textContent = `${Math.round((data.confidence || 0) * 100)}%`;
-    savePath.textContent = data.savedDir || "Resultado no guardado";
-    summaryText.textContent = (data.summary || []).join("\n");
+    sessionResults[mode] = {
+      data,
+      stages: data.stages || [],
+      currentStage: 0,
+    };
+
+    if (data.vehicleCrop) lastVehicleCropBase64 = data.vehicleCrop;
+    if (data.plateCrop || data.crop) lastPlateCropBase64 = data.plateCrop || data.crop;
+    setContextButtons();
+
     summaryText.classList.add("is-success");
-    renderStage();
-    setStatus(data.type || "Procesado", "is-success");
+    showSessionResult(mode);
+    await loadHistory();
   } catch (error) {
     plateValue.textContent = "Error";
     confidenceValue.textContent = "0%";
-    summaryText.textContent = error.message;
+    summaryText.innerHTML = `<p class="empty-state is-error">${escapeHtml(error.message)}</p>`;
     summaryText.classList.add("is-error");
     setStatus("Error", "is-error");
   } finally {
     setLoading(false);
   }
+}
+
+function formatMode(mode) {
+  if (mode === "vehicle") return "Carro";
+  if (mode === "ocr") return "OCR";
+  if (mode === "detect") return "Placa";
+  return mode || "Proceso";
+}
+
+function formatDate(value) {
+  if (!value) return "Sin fecha";
+  return new Date(value).toLocaleString("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function reportHtml(detection) {
+  const report = detection.report || {};
+  const parts = report.plateParts || [];
+  const texts = report.allTexts || [];
+  const plate = report.plate || detection.plate || "No detectada";
+  const confidence = Math.round((report.confidence ?? detection.confidence ?? 0) * 100);
+
+  return `
+    <div class="report-grid">
+      <div class="metric-card">
+        <span>Matricula</span>
+        <strong>${escapeHtml(plate)}</strong>
+      </div>
+      <div class="metric-card">
+        <span>Confianza</span>
+        <strong>${confidence}%</strong>
+      </div>
+      <div class="metric-card">
+        <span>Modo</span>
+        <strong>${escapeHtml(formatMode(detection.mode))}</strong>
+      </div>
+    </div>
+    <div class="report-section">
+      <h3>Fragmentos de matricula</h3>
+      ${
+        parts.length
+          ? parts.map(item => `<p>${escapeHtml(item.text)} <span>${Math.round((item.confidence || 0) * 100)}%</span></p>`).join("")
+          : "<p>No hay fragmentos OCR guardados.</p>"
+      }
+    </div>
+    <div class="report-section">
+      <h3>Textos detectados</h3>
+      ${
+        texts.length
+          ? texts.map(item => `<p>${escapeHtml(item.text)} <span>${Math.round((item.confidence || 0) * 100)}%</span></p>`).join("")
+          : "<p>No hay textos OCR guardados.</p>"
+      }
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function loadHistory() {
+  if (!historyList) return;
+  try {
+    const params = new URLSearchParams();
+    if (historySearch.value.trim()) params.set("q", historySearch.value.trim());
+    if (historyMode.value) params.set("mode", historyMode.value);
+    if (historyStatus.value) params.set("status_filter", historyStatus.value);
+    if (historyDateFrom.value) params.set("date_from", historyDateFrom.value);
+    if (historyDateTo.value) params.set("date_to", historyDateTo.value);
+
+    const response = await fetch(`/api/detections?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo cargar el historial.");
+
+    const detections = data.detections || [];
+    if (!detections.length) {
+      historyList.innerHTML = `<p class="empty-state">Todavia no hay detecciones guardadas.</p>`;
+      return;
+    }
+
+    historyList.innerHTML = detections.map(item => `
+      <button class="history-item" type="button" data-id="${item.id}">
+        <span>${escapeHtml(formatMode(item.mode))}</span>
+        <strong>${escapeHtml(item.plate)}</strong>
+        <small>${escapeHtml(formatDate(item.timestamp))}</small>
+        <em>${item.detected ? "Detectada" : "No detectada"}</em>
+      </button>
+    `).join("");
+  } catch (error) {
+    historyList.innerHTML = `<p class="empty-state is-error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function loadDetectionDetail(id) {
+  const response = await fetch(`/api/detections/${id}`);
+  const data = await response.json();
+  if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo cargar el detalle.");
+  const detection = data.detection;
+  const images = detection.images || {};
+
+  historyDetail.innerHTML = `
+    <div class="history-detail-header">
+      <div>
+        <p class="eyebrow">${escapeHtml(formatMode(detection.mode))}</p>
+        <h2>${escapeHtml(detection.plate)}</h2>
+      </div>
+      <span class="confidence">${Math.round((detection.confidence || 0) * 100)}%</span>
+    </div>
+    <div class="history-images">
+      <figure class="${images.original ? "" : "is-empty"}">
+        ${images.original ? `<img src="${images.original}" alt="Imagen original">` : `<div>Sin imagen original</div>`}
+        <figcaption>Original</figcaption>
+      </figure>
+      <figure class="${images.plateCrop ? "" : "is-empty"}">
+        ${images.plateCrop ? `<img src="${images.plateCrop}" alt="Recorte de placa">` : `<div>Sin recorte de placa</div>`}
+        <figcaption>Recorte de placa</figcaption>
+      </figure>
+    </div>
+    ${reportHtml(detection)}
+  `;
 }
 
 fileInput.addEventListener("change", updateFileLabel);
@@ -153,46 +410,39 @@ clearButton.addEventListener("click", () => {
   resetResults();
 });
 
-if (processCropButton) {
-  processCropButton.addEventListener("click", async () => {
-    if (!lastCropBase64) return;
+useVehicleButton.addEventListener("click", async () => {
+  if (!lastVehicleCropBase64) return;
+  const file = await dataUrlToFile(lastVehicleCropBase64, "recorte_carro.png");
+  setFile(file, false);
+  document.querySelector('input[name="mode"][value="detect"]').checked = true;
+  updateModeLabels();
+  form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+});
 
-    try {
-      const res = await fetch(lastCropBase64);
-      const blob = await res.blob();
-      const file = new File([blob], "crop.png", { type: "image/png" });
-      
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInput.files = dataTransfer.files;
-      updateFileLabel();
-
-      const ocrRadio = document.querySelector('input[name="mode"][value="ocr"]');
-      if (ocrRadio) {
-        ocrRadio.checked = true;
-        updateModeLabels();
-      }
-
-      form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
-    } catch (err) {
-      console.error("Error al preparar el recorte para OCR:", err);
-    }
-  });
-}
+processCropButton.addEventListener("click", async () => {
+  if (!lastPlateCropBase64) return;
+  const file = await dataUrlToFile(lastPlateCropBase64, "recorte_placa.png");
+  setFile(file, false);
+  document.querySelector('input[name="mode"][value="ocr"]').checked = true;
+  updateModeLabels();
+  form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+});
 
 prevStage.addEventListener("click", () => {
-  if (!stages.length) {
-    return;
-  }
+  if (!stages.length) return;
   currentStage = (currentStage - 1 + stages.length) % stages.length;
+  if (activeResultMode && sessionResults[activeResultMode]) {
+    sessionResults[activeResultMode].currentStage = currentStage;
+  }
   renderStage();
 });
 
 nextStage.addEventListener("click", () => {
-  if (!stages.length) {
-    return;
-  }
+  if (!stages.length) return;
   currentStage = (currentStage + 1) % stages.length;
+  if (activeResultMode && sessionResults[activeResultMode]) {
+    sessionResults[activeResultMode].currentStage = currentStage;
+  }
   renderStage();
 });
 
@@ -210,16 +460,42 @@ dropZone.addEventListener("drop", (event) => {
   dropZone.classList.remove("is-dragging");
 
   if (event.dataTransfer.files.length) {
-    fileInput.files = event.dataTransfer.files;
-    updateFileLabel();
+    setFile(event.dataTransfer.files[0], true);
   }
 });
 
-// Tab logic
+historyList.addEventListener("click", async (event) => {
+  const item = event.target.closest(".history-item");
+  if (!item) return;
+  historyList.querySelectorAll(".history-item").forEach(button => button.classList.remove("active"));
+  item.classList.add("active");
+  historyDetail.innerHTML = `<p class="empty-state">Cargando detalle...</p>`;
+  try {
+    await loadDetectionDetail(item.dataset.id);
+  } catch (error) {
+    historyDetail.innerHTML = `<p class="empty-state is-error">${escapeHtml(error.message)}</p>`;
+  }
+});
+
+refreshHistoryButton.addEventListener("click", (event) => {
+  event.preventDefault();
+  loadHistory();
+});
+
+[historySearch, historyMode, historyStatus, historyDateFrom, historyDateTo].forEach(control => {
+  if (!control) return;
+  control.addEventListener("input", loadHistory);
+  control.addEventListener("change", loadHistory);
+});
+
+resultTabs.forEach((button) => {
+  button.addEventListener("click", () => {
+    showSessionResult(button.dataset.resultMode);
+  });
+});
+
 const tabButtons = document.querySelectorAll(".tab-button");
 const sourceSections = document.querySelectorAll(".source-section");
-
-// Camera elements
 const cameraSelect = document.querySelector("#cameraSelect");
 const cameraStream = document.querySelector("#cameraStream");
 const captureButton = document.querySelector("#captureButton");
@@ -232,9 +508,7 @@ function stopCamera() {
     currentStream.getTracks().forEach(track => track.stop());
     currentStream = null;
   }
-  if (cameraStream) {
-    cameraStream.srcObject = null;
-  }
+  if (cameraStream) cameraStream.srcObject = null;
 }
 
 async function startCamera(deviceId = null) {
@@ -242,18 +516,17 @@ async function startCamera(deviceId = null) {
   const constraints = {
     video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }
   };
-  
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     currentStream = stream;
     cameraStream.srcObject = stream;
-    await cameraStream.play().catch(e => console.warn("Video play error:", e));
+    await cameraStream.play().catch(error => console.warn("Video play error:", error));
   } catch (err) {
-    console.error("Error accessing camera:", err);
-    if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-      summaryText.textContent = "La cámara está siendo usada por otra app (como Teams o Zoom). Ciérrala e intenta de nuevo.";
+    if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+      summaryText.innerHTML = `<p class="empty-state is-error">La camara esta siendo usada por otra app. Cierrala e intenta de nuevo.</p>`;
     } else {
-      summaryText.textContent = "No se pudo acceder a la cámara. Revisa los permisos.";
+      summaryText.innerHTML = `<p class="empty-state is-error">No se pudo acceder a la camara. Revisa los permisos.</p>`;
     }
     summaryText.classList.add("is-error");
     throw err;
@@ -262,99 +535,69 @@ async function startCamera(deviceId = null) {
 
 async function loadCameras() {
   try {
-    let permissionGranted = false;
     if (!currentStream) {
-      try {
-        await startCamera();
-        permissionGranted = true;
-      } catch (e) {
-        console.warn("Fallo al iniciar cámara inicialmente, se intentará enumerar de todos modos.");
-      }
-    } else {
-      permissionGranted = true;
+      await startCamera().catch(() => {});
     }
-    
+
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === "videoinput");
-    
+
     cameraSelect.innerHTML = "";
     if (videoDevices.length === 0) {
-      cameraSelect.innerHTML = "<option value=''>No se encontraron cámaras</option>";
+      cameraSelect.innerHTML = "<option value=''>No se encontraron camaras</option>";
       return;
     }
-    
+
     videoDevices.forEach((device, index) => {
       const option = document.createElement("option");
       option.value = device.deviceId;
-      option.text = device.label || `Cámara ${index + 1}`;
+      option.text = device.label || `Camara ${index + 1}`;
       cameraSelect.appendChild(option);
     });
-    
-    if (currentStream && currentStream.getVideoTracks().length > 0) {
-       const activeTrack = currentStream.getVideoTracks()[0];
-       const settings = activeTrack.getSettings();
-       if (settings && settings.deviceId) {
-          cameraSelect.value = settings.deviceId;
-       }
-    } else if (permissionGranted && videoDevices.length > 0) {
-       cameraSelect.value = videoDevices[0].deviceId;
-    }
   } catch (err) {
-    console.error("Error enumerating cameras:", err);
-    cameraSelect.innerHTML = "<option value=''>Error al cargar cámaras</option>";
+    cameraSelect.innerHTML = "<option value=''>Error al cargar camaras</option>";
   }
 }
 
-if (tabButtons && tabButtons.length > 0) {
-  tabButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      tabButtons.forEach(btn => btn.classList.remove("active"));
-      sourceSections.forEach(sec => sec.style.display = "none");
-      
-      button.classList.add("active");
-      const targetId = button.getAttribute("data-target");
-      document.getElementById(targetId).style.display = "block";
-      
-      if (targetId === "cameraSection") {
-        loadCameras();
-      } else {
-        stopCamera();
-      }
-    });
+tabButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    tabButtons.forEach(btn => btn.classList.remove("active"));
+    sourceSections.forEach(sec => sec.style.display = "none");
+
+    button.classList.add("active");
+    const targetId = button.getAttribute("data-target");
+    document.getElementById(targetId).style.display = "block";
+
+    if (targetId === "cameraSection") loadCameras();
+    else stopCamera();
   });
-}
+});
 
 if (cameraSelect) {
-  cameraSelect.addEventListener("change", (e) => {
-    startCamera(e.target.value);
+  cameraSelect.addEventListener("change", (event) => {
+    startCamera(event.target.value);
   });
 }
 
 if (captureButton) {
   captureButton.addEventListener("click", () => {
     if (!currentStream) return;
-    
+
     const context = cameraCanvas.getContext("2d");
     cameraCanvas.width = cameraStream.videoWidth || 640;
     cameraCanvas.height = cameraStream.videoHeight || 480;
     context.drawImage(cameraStream, 0, 0, cameraCanvas.width, cameraCanvas.height);
-    
+
     cameraCanvas.toBlob((blob) => {
       const file = new File([blob], "captura_camara.png", { type: "image/png" });
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInput.files = dataTransfer.files;
-      
-      updateFileLabel();
-      
+      setFile(file, true);
       document.querySelector('[data-target="uploadSection"]').click();
-      
-      summaryText.textContent = "Foto capturada correctamente. Selecciona un modo y procesa la imagen.";
+      summaryText.innerHTML = `<p class="empty-state">Foto capturada correctamente. Selecciona un modo y procesa la imagen.</p>`;
       summaryText.classList.remove("is-error");
       summaryText.classList.add("is-success");
-      
     }, "image/png");
   });
 }
 
 resetResults();
+loadHistory();

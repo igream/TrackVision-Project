@@ -27,5 +27,10 @@ class Detection(Base):
     saved_dir = Column(String(255))
     summary_text = Column(Text)
     original_image_blob = Column(LargeBinary, nullable=True) # Para almacenar la imagen en la base de datos
+    vehicle_crop_blob = Column(LargeBinary, nullable=True)
+    plate_crop_blob = Column(LargeBinary, nullable=True)
+    vehicle_bbox = Column(String(100), nullable=True)
+    plate_bbox = Column(String(100), nullable=True)
+    report_json = Column(Text, nullable=True)
     
     user = relationship("User", back_populates="detections")
