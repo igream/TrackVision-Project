@@ -21,6 +21,7 @@ class Detection(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     mode = Column(String(50))  # 'detect' or 'ocr'
+    reason = Column(String(50), default="web_process")
     plate_text = Column(String(100))
     confidence = Column(Float)
     original_filename = Column(String(255))

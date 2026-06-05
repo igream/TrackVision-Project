@@ -16,6 +16,7 @@ def ensure_detection_schema() -> None:
         "vehicle_bbox": "VARCHAR(100)",
         "plate_bbox": "VARCHAR(100)",
         "report_json": "TEXT",
+        "reason": "VARCHAR(50)",
     }
 
     with engine.begin() as connection:

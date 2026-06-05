@@ -41,6 +41,11 @@ UAEMEX_PATHS = (
 )
 
 SUPPORTED_UPLOAD_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+DETECTION_REASONS = {
+    "web_process": "Procesado en web",
+    "possible_collision": "Posible choque",
+    "circuit_button": "Activacion del boton del circuito",
+}
 
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
@@ -102,6 +107,17 @@ def _parse_report(value: str | None):
         return None
 
 
+def _normalize_reason(reason: str | None) -> str:
+    value = (reason or "web_process").strip()
+    if value not in DETECTION_REASONS:
+        raise HTTPException(status_code=400, detail="Motivo de deteccion no soportado")
+    return value
+
+
+def _reason_label(reason: str | None) -> str:
+    return DETECTION_REASONS.get(reason or "web_process", DETECTION_REASONS["web_process"])
+
+
 def _ocr_report(result):
     return {
         "plate": result.texto_matricula or "No detectada",
@@ -135,6 +151,8 @@ def _detection_list_item(detection: Detection):
         "id": detection.id,
         "timestamp": detection.timestamp.isoformat() if detection.timestamp else None,
         "mode": detection.mode,
+        "reason": detection.reason or "web_process",
+        "reasonLabel": _reason_label(detection.reason),
         "plate": detection.plate_text or "No detectada",
         "confidence": detection.confidence or 0.0,
         "filename": detection.original_filename,
@@ -252,12 +270,14 @@ async def serve_samples(filename: str):
 @router.post("/api/vehicle")
 async def handle_vehicle_request(
     mode: str = Form(...),
+    reason: str | None = Form(None),
     plate_image: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     if not current_user:
         return JSONResponse({"ok": False, "error": "No autenticado"}, status_code=401)
+    reason_value = _normalize_reason(reason)
 
     filename = plate_image.filename
     extension = Path(filename).suffix.lower()
@@ -278,6 +298,7 @@ async def handle_vehicle_request(
         detection = Detection(
             user_id=current_user.id,
             mode='vehicle',
+            reason=reason_value,
             plate_text="Carro detectado" if best else "No detectado",
             confidence=best.confidence if best else 0.0,
             original_filename=filename,
@@ -311,6 +332,8 @@ async def handle_vehicle_request(
         "plate": "Carro detectado" if best else "No detectado",
         "confidence": best.confidence if best else 0.0,
         "type": "Deteccion de carro",
+        "reason": reason_value,
+        "reasonLabel": _reason_label(reason_value),
         "savedDir": "Sin guardado automatico",
         "summary": result.summary_text,
         "stages": stages,
@@ -321,6 +344,7 @@ async def handle_vehicle_request(
 @router.post("/api/process")
 async def handle_process_request(
     mode: str = Form(...),
+    reason: str | None = Form(None),
     plate_image: UploadFile = File(...),
     original_image: UploadFile | None = File(None),
     current_user: User = Depends(get_current_user),
@@ -328,6 +352,7 @@ async def handle_process_request(
 ):
     if not current_user:
         return JSONResponse({"ok": False, "error": "No autenticado"}, status_code=401)
+    reason_value = _normalize_reason(reason)
         
     filename = plate_image.filename
     extension = Path(filename).suffix.lower()
@@ -353,6 +378,7 @@ async def handle_process_request(
         detection = Detection(
             user_id=current_user.id,
             mode='ocr',
+            reason=reason_value,
             plate_text=result.texto_matricula or "No detectada",
             confidence=result.promedio_confianza,
             original_filename=filename,
@@ -376,6 +402,8 @@ async def handle_process_request(
         "plate": result.texto_matricula or "No detectada",
         "confidence": result.promedio_confianza,
         "type": result.tipo,
+        "reason": reason_value,
+        "reasonLabel": _reason_label(reason_value),
         "savedDir": saved_dir,
         "summary": result.resumen_texto,
         "stages": stages,
@@ -387,12 +415,14 @@ async def handle_process_request(
 @router.post("/api/detect")
 async def handle_detect_request(
     mode: str = Form(...),
+    reason: str | None = Form(None),
     plate_image: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     if not current_user:
         return JSONResponse({"ok": False, "error": "No autenticado"}, status_code=401)
+    reason_value = _normalize_reason(reason)
         
     filename = plate_image.filename
     extension = Path(filename).suffix.lower()
@@ -414,6 +444,7 @@ async def handle_detect_request(
         detection = Detection(
             user_id=current_user.id,
             mode='detect',
+            reason=reason_value,
             plate_text="Placa detectada" if best else "No detectada",
             confidence=best.confidence if best else 0.0,
             original_filename=filename,
@@ -447,6 +478,8 @@ async def handle_detect_request(
         "plate": "Placa detectada" if best else "No detectada",
         "confidence": best.confidence if best else 0.0,
         "type": "Deteccion PDI",
+        "reason": reason_value,
+        "reasonLabel": _reason_label(reason_value),
         "savedDir": "Sin guardado automatico",
         "summary": result.summary_text,
         "stages": stages,
@@ -459,6 +492,7 @@ async def handle_detect_request(
 @router.get("/api/detections")
 async def list_detections(
     mode: str | None = None,
+    reason: str | None = None,
     status_filter: str | None = None,
     q: str | None = None,
     date_from: str | None = None,
@@ -473,6 +507,12 @@ async def list_detections(
 
     if mode in {"vehicle", "detect", "ocr"}:
         query = query.filter(Detection.mode == mode)
+
+    if reason in DETECTION_REASONS:
+        if reason == "web_process":
+            query = query.filter((Detection.reason == reason) | (Detection.reason.is_(None)))
+        else:
+            query = query.filter(Detection.reason == reason)
 
     if q:
         pattern = f"%{q.strip()}%"

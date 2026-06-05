@@ -23,7 +23,8 @@ La aplicación permite registrarse, iniciar sesión, subir imágenes vehiculares
   * **Detección PDI de Placa:** Proceso algorítmico clásico que aísla contornos que coinciden con las proporciones de una placa vehicular.
   * **Lectura OCR:** Extracción de texto mediante PaddleOCR sobre la imagen seleccionada o sobre un recorte de placa.
 * **Resultados por Servicio:** La interfaz conserva durante la sesión los carruseles de carro, placa y OCR, permitiendo volver a visualizar resultados ya procesados sin ejecutar nuevamente el servicio.
-* **Historial Privado:** Cada usuario puede consultar únicamente sus propias detecciones, con filtros por texto, servicio, estado y fecha.
+* **Historial Privado:** Cada usuario puede consultar únicamente sus propias detecciones, con filtros por texto, servicio, estado, motivo y fecha.
+* **Integración Con Circuito:** Incluye cliente real para Raspberry Pi y emuladores de consola para registrar eventos de botón físico o posible choque.
 * **Interfaz Responsiva:** La experiencia está adaptada para uso en celulares sin perder funcionalidad en escritorio.
 
 ---
@@ -154,6 +155,104 @@ Para pausarlo manualmente:
 
 ---
 
+## Circuito Raspberry Y Emuladores
+
+El proyecto incluye soporte para un prototipo de laboratorio inspirado en `local/consideraciones.pdf`: una Raspberry Pi con cámara, botón físico, LED indicador y sensor inercial MPU6050. El flujo natural del circuito es el mismo de la web:
+
+```text
+1. Detectar/cortar carro
+2. Detectar placa sobre el recorte del carro
+3. Ejecutar OCR sobre el recorte de placa
+```
+
+Cada captura registra un motivo en el historial:
+
+* `Procesado en web`: imagen procesada desde la interfaz web.
+* `Activacion del boton del circuito`: captura manual disparada por botón.
+* `Posible choque`: captura disparada por impacto o vibración fuerte.
+
+### Emulador Local
+
+El emulador de consola permite probar el flujo completo sin Raspberry Pi. Pide credenciales, permite registrar un usuario si no existe, pregunta el caso a registrar, muestra 10 imágenes de prueba desde `img/` y sube la imagen seleccionada a la app.
+
+```powershell
+.\.venv310\Scripts\python.exe circuit\test\trackvision_emulator.py
+```
+
+Por defecto se conecta a:
+
+```text
+http://127.0.0.1:8000
+```
+
+También puede apuntar a otro servidor:
+
+```powershell
+.\.venv310\Scripts\python.exe circuit\test\trackvision_emulator.py --base-url http://127.0.0.1:8080
+```
+
+### Emulador Para Hugging Face
+
+Existe una copia orientada al despliegue público. Usa el mismo flujo de consola, pero se conecta directamente al Space:
+
+```powershell
+.\.venv310\Scripts\python.exe circuit\test\trackvision_emulator_huggingface.py
+```
+
+URL usada por defecto:
+
+```text
+https://igream-trackvision-project.hf.space
+```
+
+### Cliente Real Para Raspberry Pi
+
+El cliente real está en:
+
+```text
+circuit/real/trackvision_raspberry.py
+```
+
+Comportamiento esperado:
+
+* Lee botón en GPIO17 con antirrebote.
+* Lee MPU6050 por I2C y calcula magnitud de aceleración.
+* Detecta impacto cuando se supera el umbral configurado.
+* Usa LED en GPIO27 para indicar estados.
+* Captura imagen con `libcamera-still`.
+* Inicia sesión en TrackVision.
+* Ejecuta el flujo completo: carro, placa y OCR.
+
+Variables principales:
+
+```powershell
+$env:TRACKVISION_USERNAME = "usuario"
+$env:TRACKVISION_PASSWORD = "contrasena"
+$env:TRACKVISION_BASE_URL = "https://igream-trackvision-project.hf.space"
+```
+
+Ejecución en Raspberry Pi:
+
+```bash
+python3 circuit/real/trackvision_raspberry.py
+```
+
+Parámetros configurables:
+
+```text
+--base-url
+--button-pin
+--led-pin
+--i2c-bus
+--impact-threshold
+--cooldown-seconds
+--debounce-seconds
+--poll-seconds
+--capture-command
+```
+
+---
+
 ## Estructura del Proyecto
 
 * `run.py`: Punto de entrada de la aplicación.
@@ -166,6 +265,10 @@ Para pausarlo manualmente:
   * `app/services/`: Lógica de visión por computadora, OCR y almacenamiento.
   * `app/desktop/`: Interfaz gráfica heredada de escritorio.
   * `app/templates/` y `app/static/`: Interfaz web.
+* `circuit/`: Código del prototipo físico y emuladores.
+  * `circuit/real/trackvision_raspberry.py`: Cliente para Raspberry Pi.
+  * `circuit/test/trackvision_emulator.py`: Emulador local de consola.
+  * `circuit/test/trackvision_emulator_huggingface.py`: Emulador conectado al despliegue público.
 * `tests/`: Scripts de validación, simulación de subidas y evaluación masiva.
 * `database.db`: Archivo SQLite generado automáticamente en el primer inicio.
 
@@ -184,6 +287,15 @@ python run.py
 ```
 
 En despliegues HTTPS, como Hugging Face Spaces, usar `OCR_SESSION_SECURE=true`.
+
+Para el circuito real se usan variables `TRACKVISION_*`:
+
+```powershell
+$env:TRACKVISION_USERNAME = "usuario"
+$env:TRACKVISION_PASSWORD = "contrasena"
+$env:TRACKVISION_BASE_URL = "https://igream-trackvision-project.hf.space"
+$env:TRACKVISION_IMPACT_THRESHOLD = "2.4"
+```
 
 ## Dependencias Principales
 

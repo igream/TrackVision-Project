@@ -635,7 +635,7 @@ pre {
 
 .report-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -712,7 +712,7 @@ pre {
 
 .history-filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) repeat(4, minmax(130px, 1fr));
+  grid-template-columns: minmax(180px, 1.4fr) repeat(5, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 16px;
 }

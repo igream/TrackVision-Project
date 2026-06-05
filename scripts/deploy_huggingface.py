@@ -16,6 +16,7 @@ INCLUDE_PATHS = [
     "requirements.txt",
     "run.py",
     "app",
+    "circuit",
     "img",
     "src",
 ]

@@ -23,6 +23,7 @@ const historyDetail = document.querySelector("#historyDetail");
 const historySearch = document.querySelector("#historySearch");
 const historyMode = document.querySelector("#historyMode");
 const historyStatus = document.querySelector("#historyStatus");
+const historyReason = document.querySelector("#historyReason");
 const historyDateFrom = document.querySelector("#historyDateFrom");
 const historyDateTo = document.querySelector("#historyDateTo");
 const resultTabs = document.querySelectorAll(".result-tab");
@@ -166,6 +167,10 @@ function renderAnalysisReport(data, mode) {
         <span>Servicio</span>
         <strong>${escapeHtml(formatMode(mode))}</strong>
       </div>
+      <div class="metric-card">
+        <span>Motivo</span>
+        <strong>${escapeHtml(data.reasonLabel || formatReason(data.reason))}</strong>
+      </div>
     </div>
     ${
       bbox
@@ -277,6 +282,12 @@ function formatMode(mode) {
   return mode || "Proceso";
 }
 
+function formatReason(reason) {
+  if (reason === "possible_collision") return "Posible choque";
+  if (reason === "circuit_button") return "Activacion del boton";
+  return "Procesado en web";
+}
+
 function formatDate(value) {
   if (!value) return "Sin fecha";
   return new Date(value).toLocaleString("es-MX", {
@@ -289,7 +300,7 @@ function reportHtml(detection) {
   const report = detection.report || {};
   const parts = report.plateParts || [];
   const texts = report.allTexts || [];
-  const plate = report.plate || detection.plate || "No detectada";
+  const plate = typeof report.plate === "string" ? report.plate : detection.plate || "No detectada";
   const confidence = Math.round((report.confidence ?? detection.confidence ?? 0) * 100);
 
   return `
@@ -305,6 +316,10 @@ function reportHtml(detection) {
       <div class="metric-card">
         <span>Modo</span>
         <strong>${escapeHtml(formatMode(detection.mode))}</strong>
+      </div>
+      <div class="metric-card">
+        <span>Motivo</span>
+        <strong>${escapeHtml(detection.reasonLabel || formatReason(detection.reason))}</strong>
       </div>
     </div>
     <div class="report-section">
@@ -342,6 +357,7 @@ async function loadHistory() {
     if (historySearch.value.trim()) params.set("q", historySearch.value.trim());
     if (historyMode.value) params.set("mode", historyMode.value);
     if (historyStatus.value) params.set("status_filter", historyStatus.value);
+    if (historyReason.value) params.set("reason", historyReason.value);
     if (historyDateFrom.value) params.set("date_from", historyDateFrom.value);
     if (historyDateTo.value) params.set("date_to", historyDateTo.value);
 
@@ -360,6 +376,7 @@ async function loadHistory() {
         <span>${escapeHtml(formatMode(item.mode))}</span>
         <strong>${escapeHtml(item.plate)}</strong>
         <small>${escapeHtml(formatDate(item.timestamp))}</small>
+        <small>${escapeHtml(item.reasonLabel || formatReason(item.reason))}</small>
         <em>${item.detected ? "Detectada" : "No detectada"}</em>
       </button>
     `).join("");
@@ -380,6 +397,7 @@ async function loadDetectionDetail(id) {
       <div>
         <p class="eyebrow">${escapeHtml(formatMode(detection.mode))}</p>
         <h2>${escapeHtml(detection.plate)}</h2>
+        <small>${escapeHtml(detection.reasonLabel || formatReason(detection.reason))}</small>
       </div>
       <span class="confidence">${Math.round((detection.confidence || 0) * 100)}%</span>
     </div>
@@ -482,7 +500,7 @@ refreshHistoryButton.addEventListener("click", (event) => {
   loadHistory();
 });
 
-[historySearch, historyMode, historyStatus, historyDateFrom, historyDateTo].forEach(control => {
+[historySearch, historyMode, historyStatus, historyReason, historyDateFrom, historyDateTo].forEach(control => {
   if (!control) return;
   control.addEventListener("input", loadHistory);
   control.addEventListener("change", loadHistory);
